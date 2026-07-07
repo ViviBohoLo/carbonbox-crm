@@ -80,7 +80,7 @@ class TestCrearLead(unittest.TestCase):
 
 class TestRateLimiter(unittest.TestCase):
     def test_bloquea_tras_el_limite(self):
-        rl = li.RateLimiter(max_por_hora=3)
+        rl = li.RateLimiter(max_peticiones=3, ventana_seg=300)
         t = 1000.0
         self.assertTrue(rl.permite("1.1.1.1", t))
         self.assertTrue(rl.permite("1.1.1.1", t))
@@ -88,16 +88,24 @@ class TestRateLimiter(unittest.TestCase):
         self.assertFalse(rl.permite("1.1.1.1", t))
 
     def test_otra_ip_no_afecta(self):
-        rl = li.RateLimiter(max_por_hora=1)
+        rl = li.RateLimiter(max_peticiones=1, ventana_seg=300)
         t = 1000.0
         self.assertTrue(rl.permite("1.1.1.1", t))
         self.assertTrue(rl.permite("2.2.2.2", t))
 
-    def test_ventana_se_libera(self):
-        rl = li.RateLimiter(max_por_hora=1)
+    def test_ventana_corta_se_libera(self):
+        rl = li.RateLimiter(max_peticiones=1, ventana_seg=300)
         self.assertTrue(rl.permite("1.1.1.1", 1000.0))
         self.assertFalse(rl.permite("1.1.1.1", 1000.0))
-        self.assertTrue(rl.permite("1.1.1.1", 1000.0 + 3601))
+        self.assertTrue(rl.permite("1.1.1.1", 1000.0 + 301))  # pasó la ventana
+
+    def test_retry_after(self):
+        rl = li.RateLimiter(max_peticiones=1, ventana_seg=300)
+        self.assertEqual(rl.retry_after("1.1.1.1", 1000.0), 0)  # aún permite
+        rl.permite("1.1.1.1", 1000.0)
+        ra = rl.retry_after("1.1.1.1", 1000.0)                  # ahora bloqueado
+        self.assertTrue(1 <= ra <= 301, ra)
+        self.assertEqual(rl.retry_after("1.1.1.1", 1000.0 + 301), 0)  # tras la ventana
 
 
 class TestOrigenCors(unittest.TestCase):

@@ -37,19 +37,30 @@ def origen_cors(origin):
 
 
 class RateLimiter:
-    """Límite simple en memoria: N envíos por IP por hora (ventana deslizante)."""
-    def __init__(self, max_por_hora=5):
-        self.max = max_por_hora
+    """Límite simple en memoria: N envíos por IP en una ventana deslizante corta.
+    Ventana corta (no de una hora) para que un pico se libere rápido y no bloquee al
+    usuario legítimo; umbral con holgura para absorber los reintentos del cliente."""
+    def __init__(self, max_peticiones=10, ventana_seg=300):
+        self.max = max_peticiones
+        self.ventana = ventana_seg
         self._hist = {}  # ip -> [timestamps]
 
     def permite(self, ip, ahora):
-        h = [t for t in self._hist.get(ip, []) if ahora - t < 3600]
+        h = [t for t in self._hist.get(ip, []) if ahora - t < self.ventana]
         if len(h) >= self.max:
             self._hist[ip] = h
             return False
         h.append(ahora)
         self._hist[ip] = h
         return True
+
+    def retry_after(self, ip, ahora):
+        """Segundos hasta que se libere un slot (para la cabecera Retry-After).
+        0 si todavía permite. No muta el historial."""
+        h = [t for t in self._hist.get(ip, []) if ahora - t < self.ventana]
+        if len(h) < self.max:
+            return 0
+        return max(1, int(self.ventana - (ahora - min(h))) + 1)
 
 
 def es_bot(payload):
