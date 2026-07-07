@@ -67,6 +67,16 @@ class TestCrearLead(unittest.TestCase):
                            "cargo": "", "ciudad": "", "necesidad": "", "mensaje": ""})
         self.assertIsNone(r)
 
+    def test_setea_suscrito_marketing_true(self):
+        li.crear_lead({"nombre": "Ana", "email": "ana@acme.com", "empresa": "Acme",
+                       "acepta_marketing": True})
+        self.assertTrue(self._person_input()["suscritoMarketing"])
+
+    def test_setea_suscrito_marketing_false(self):
+        li.crear_lead({"nombre": "Ana", "email": "ana@acme.com", "empresa": "Acme",
+                       "acepta_marketing": False})
+        self.assertFalse(self._person_input()["suscritoMarketing"])
+
 
 class TestRateLimiter(unittest.TestCase):
     def test_bloquea_tras_el_limite(self):
@@ -150,6 +160,21 @@ class TestMapeoForm(unittest.TestCase):
         self.assertTrue(li.es_bot({"website": "http://spam"}))
         self.assertFalse(li.es_bot({"website": ""}))
         self.assertFalse(li.es_bot({}))
+
+    def test_marketing_marcado(self):
+        d = li.mapear_form({"firstname": "Ana", "email": "a@x.com",
+                            "acepta_marketing": "true"})
+        self.assertTrue(d["acepta_marketing"])
+
+    def test_marketing_no_marcado(self):
+        d = li.mapear_form({"firstname": "Ana", "email": "a@x.com"})
+        self.assertFalse(d["acepta_marketing"])
+
+    def test_marketing_valores_checkbox(self):
+        for v in ("true", "on", "1", "yes", "TRUE", "On"):
+            self.assertTrue(li.mapear_form({"acepta_marketing": v})["acepta_marketing"], v)
+        for v in ("", "false", "0", "off"):
+            self.assertFalse(li.mapear_form({"acepta_marketing": v})["acepta_marketing"], v)
 
 
 if __name__ == "__main__":

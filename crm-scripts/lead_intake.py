@@ -71,6 +71,7 @@ def mapear_form(payload):
         "ciudad": g("city"),
         "necesidad": g("necesidad"),
         "mensaje": g("describenos_cual_es_tu_necesidad"),
+        "acepta_marketing": g("acepta_marketing").lower() in ("true", "on", "1", "yes"),
     }
 
 
@@ -140,7 +141,8 @@ def crear_lead(datos):
         ciudad=ciudad or None)
 
     pdata = {"name": {"firstName": nombre or "(sin nombre)", "lastName": apellido},
-             "fuenteLead": "WEB"}
+             "fuenteLead": "WEB",
+             "suscritoMarketing": bool(datos.get("acepta_marketing"))}
     if email:
         pdata["emails"] = {"primaryEmail": email}
     if tel:
