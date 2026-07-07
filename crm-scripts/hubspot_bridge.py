@@ -11,7 +11,7 @@ import json, os, sys, time, urllib.request, urllib.parse
 
 sys.path.insert(0, "/root/crm-scripts")
 from crm_lib import send_notification
-from lead_intake import crear_lead
+from lead_intake import crear_lead, es_duplicado
 
 FORM_GUID = "64b92eab-d7b8-4d6e-b381-881adf692a4d"
 HS_URL = f"https://api.hubapi.com/form-integrations/v1/submissions/forms/{FORM_GUID}?limit=50"
@@ -43,14 +43,6 @@ def campo(values, *names):
         if v.get("name", "").lower() in [n.lower() for n in names]:
             return (v.get("value") or "").strip()
     return ""
-
-
-def es_duplicado(ex):
-    """Un error de duplicado = el contacto ya existe (lo creó el intake directo u otro
-    envío). NO es un fallo transitorio → marcar la submission como procesada para no
-    reintentarla en loop cada 5 min."""
-    m = str(ex).lower()
-    return "duplicate" in m or "already exists" in m
 
 
 def procesar(sub):

@@ -86,6 +86,14 @@ def mapear_form(payload):
     }
 
 
+def es_duplicado(ex):
+    """Un error de duplicado = el registro ya existe (lo creó otra petición: p.ej. una
+    carrera entre el envío y su reintento con el mismo email). NO es un fallo real →
+    tratarlo como benigno, no como error. Lo usan el intake y el puente de HubSpot."""
+    m = str(ex).lower()
+    return "duplicate" in m or "already exists" in m
+
+
 def _crear_company(data):
     d = gql("""mutation($data: CompanyCreateInput!) { createCompany(data:$data) { id } }""",
             {"data": data})
@@ -167,8 +175,15 @@ def crear_lead(datos):
         pdata["jobTitle"] = cargo[:120]
     if company_id:
         pdata["companyId"] = company_id
-    d = gql("""mutation($data: PersonCreateInput!) { createPerson(data:$data) { id } }""",
-            {"data": pdata})
+    try:
+        d = gql("""mutation($data: PersonCreateInput!) { createPerson(data:$data) { id } }""",
+                {"data": pdata})
+    except RuntimeError as ex:
+        # carrera: otra petición (p.ej. el reintento del cliente) ya creó este email.
+        # el lead ya existe → tratar como duplicado benigno, no como error.
+        if es_duplicado(ex):
+            return None
+        raise
     person_id = d["createPerson"]["id"]
 
     opp_name = f"{empresa or (nombre + ' ' + apellido).strip()} — web"

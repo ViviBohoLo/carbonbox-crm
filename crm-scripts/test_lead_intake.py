@@ -77,6 +77,33 @@ class TestCrearLead(unittest.TestCase):
                        "acepta_marketing": False})
         self.assertFalse(self._person_input()["suscritoMarketing"])
 
+    def test_duplicado_en_create_person_devuelve_none(self):
+        """Carrera (reintento del cliente con mismo email): el dedup pasa pero el
+        createPerson choca por duplicado → se trata como benigno, devuelve None."""
+        def fq(q, v=None):
+            if "people(filter" in q:
+                return {"people": {"edges": []}}
+            if "companies(filter" in q:
+                return {"companies": {"edges": []}}
+            if "createCompany" in q:
+                return {"createCompany": {"id": "co-1"}}
+            if "createPerson" in q:
+                raise RuntimeError('[{"message": "A duplicate entry was detected"}]')
+            raise AssertionError("no deberia seguir tras el duplicado")
+        li.gql = fq
+        r = li.crear_lead({"nombre": "Race", "email": "race@acme.com", "empresa": "Acme"})
+        self.assertIsNone(r)
+
+
+class TestEsDuplicado(unittest.TestCase):
+    def test_detecta_duplicado(self):
+        self.assertTrue(li.es_duplicado(RuntimeError("A duplicate entry was detected")))
+        self.assertTrue(li.es_duplicado(Exception("This record already exists")))
+
+    def test_no_es_duplicado(self):
+        self.assertFalse(li.es_duplicado(RuntimeError("Connection timeout")))
+        self.assertFalse(li.es_duplicado(RuntimeError("LIMIT_REACHED")))
+
 
 class TestRateLimiter(unittest.TestCase):
     def test_bloquea_tras_el_limite(self):

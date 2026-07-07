@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Servidor de intake del formulario web -> CRM CarbonBox.
 Escucha en 127.0.0.1:8088; Caddy lo expone en https://crm.carbonbox.app/intake."""
-import json, time
+import json, time, traceback
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import sys
 sys.path.insert(0, "/root/crm-scripts")
@@ -59,7 +59,16 @@ class Handler(BaseHTTPRequestHandler):
         try:
             resumen = crear_lead(datos)
         except Exception as ex:
-            print(f"[intake] error CRM: {ex}", flush=True)
+            # crear_lead ya trata los duplicados como benignos (devuelve None); aquí solo
+            # caen errores inesperados. Logear el detalle real para diagnosticar.
+            detalle = str(ex)
+            if hasattr(ex, "code") and hasattr(ex, "read"):  # urllib.error.HTTPError
+                try:
+                    detalle = f"{ex.code} {ex.read().decode('utf-8', 'replace')}"
+                except Exception:
+                    pass
+            print(f"[intake] error CRM: {detalle}", flush=True)
+            print(traceback.format_exc(), flush=True)
             return self._json(500, {"ok": False, "error": "crm"})
         if resumen:
             try:
