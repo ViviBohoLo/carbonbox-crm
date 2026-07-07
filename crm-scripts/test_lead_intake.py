@@ -77,22 +77,57 @@ class TestCrearLead(unittest.TestCase):
                        "acepta_marketing": False})
         self.assertFalse(self._person_input()["suscritoMarketing"])
 
-    def test_duplicado_en_create_person_devuelve_none(self):
-        """Carrera (reintento del cliente con mismo email): el dedup pasa pero el
-        createPerson choca por duplicado → se trata como benigno, devuelve None."""
+    def test_duplicado_por_carrera_devuelve_none(self):
+        """Carrera con una persona VIVA (el reintento del cliente ya la creó): benigno."""
+        st = {"live_calls": 0}
         def fq(q, v=None):
-            if "people(filter" in q:
+            if "createPerson" in q:
+                raise RuntimeError('[{"message": "A duplicate entry was detected"}]')
+            if "deletedAt" in q:
+                return {"people": {"edges": []}}
+            if "people(filter" in q:            # dedup (top) vacío; re-check devuelve viva
+                st["live_calls"] += 1
+                node = [] if st["live_calls"] == 1 else [{"node": {"id": "pe-live"}}]
+                return {"people": {"edges": node}}
+            if "companies(filter" in q:
+                return {"companies": {"edges": []}}
+            if "createCompany" in q:
+                return {"createCompany": {"id": "co-1"}}
+            return {}
+        li.gql = fq
+        r = li.crear_lead({"nombre": "Race", "email": "race@acme.com", "empresa": "Acme"})
+        self.assertIsNone(r)
+
+    def test_recupera_lead_si_email_bloqueado_por_borrado(self):
+        """Colisión con un contacto SOFT-DELETED: se libera (destroyPerson) y se reintenta,
+        para NO perder un lead real que vuelve a escribir."""
+        st = {"person_creates": 0, "destroyed": []}
+        def fq(q, v=None):
+            if "destroyPerson" in q:
+                st["destroyed"].append(v["id"]); return {"destroyPerson": {"id": v["id"]}}
+            if "createPerson" in q:
+                st["person_creates"] += 1
+                if st["person_creates"] == 1:
+                    raise RuntimeError('[{"message": "A duplicate entry was detected"}]')
+                return {"createPerson": {"id": "pe-new"}}
+            if "deletedAt" in q:                 # query de borrados: hay uno
+                return {"people": {"edges": [{"node": {"id": "dead-1"}}]}}
+            if "people(filter" in q:             # dedup/recheck de vivos: vacío
                 return {"people": {"edges": []}}
             if "companies(filter" in q:
                 return {"companies": {"edges": []}}
             if "createCompany" in q:
                 return {"createCompany": {"id": "co-1"}}
-            if "createPerson" in q:
-                raise RuntimeError('[{"message": "A duplicate entry was detected"}]')
-            raise AssertionError("no deberia seguir tras el duplicado")
+            if "createOpportunity" in q:
+                return {"createOpportunity": {"id": "op-1"}}
+            if "createNote" in q and "Target" not in q:
+                return {"createNote": {"id": "no-1"}}
+            return {"createNoteTarget": {"id": "nt-1"}}
         li.gql = fq
-        r = li.crear_lead({"nombre": "Race", "email": "race@acme.com", "empresa": "Acme"})
-        self.assertIsNone(r)
+        r = li.crear_lead({"nombre": "Vuelve", "email": "vuelve@acme.com", "empresa": "Acme"})
+        self.assertIsNotNone(r)                       # el lead SÍ se crea
+        self.assertEqual(st["destroyed"], ["dead-1"])  # liberó el email del borrado
+        self.assertEqual(st["person_creates"], 2)      # reintentó el create
 
 
 class TestEsDuplicado(unittest.TestCase):

@@ -175,15 +175,30 @@ def crear_lead(datos):
         pdata["jobTitle"] = cargo[:120]
     if company_id:
         pdata["companyId"] = company_id
+    def _crear_person():
+        return gql("""mutation($data: PersonCreateInput!) { createPerson(data:$data) { id } }""",
+                   {"data": pdata})
     try:
-        d = gql("""mutation($data: PersonCreateInput!) { createPerson(data:$data) { id } }""",
-                {"data": pdata})
+        d = _crear_person()
     except RuntimeError as ex:
-        # carrera: otra petición (p.ej. el reintento del cliente) ya creó este email.
-        # el lead ya existe → tratar como duplicado benigno, no como error.
-        if es_duplicado(ex):
+        if not es_duplicado(ex) or not email:
+            raise
+        # Duplicado en el email. Dos casos:
+        # 1) Carrera: otra petición (p.ej. el reintento del cliente) YA creó este email
+        #    → hay una persona VIVA → benigno, no duplicar.
+        live = gql("""query($e: String!) { people(filter:{emails:{primaryEmail:{eq:$e}}}, first:1) {
+            edges { node { id } } } }""", {"e": email})
+        if live["people"]["edges"]:
             return None
-        raise
+        # 2) El email lo bloquea un registro BORRADO (soft-deleted): el índice único
+        #    incluye los borrados. Es un lead REAL que vuelve → liberar el email y reintentar
+        #    (si no, se perdería en silencio).
+        dead = gql("""query($e: String!) { people(
+            filter:{emails:{primaryEmail:{eq:$e}}, deletedAt:{is:NOT_NULL}}, first:1) {
+            edges { node { id } } } }""", {"e": email})
+        for e in dead["people"]["edges"]:
+            gql("""mutation($id: UUID!) { destroyPerson(id:$id) { id } }""", {"id": e["node"]["id"]})
+        d = _crear_person()  # reintento tras liberar el email
     person_id = d["createPerson"]["id"]
 
     opp_name = f"{empresa or (nombre + ' ' + apellido).strip()} — web"
