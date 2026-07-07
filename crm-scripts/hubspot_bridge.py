@@ -45,6 +45,14 @@ def campo(values, *names):
     return ""
 
 
+def es_duplicado(ex):
+    """Un error de duplicado = el contacto ya existe (lo creó el intake directo u otro
+    envío). NO es un fallo transitorio → marcar la submission como procesada para no
+    reintentarla en loop cada 5 min."""
+    m = str(ex).lower()
+    return "duplicate" in m or "already exists" in m
+
+
 def procesar(sub):
     vals = sub.get("values", [])
     datos = {
@@ -78,8 +86,13 @@ def main():
             if r:
                 nuevos.append(r)
         except Exception as ex:
-            print(f"error procesando {sid}: {ex}")
-            continue  # no marcar como visto para reintentar
+            if es_duplicado(ex):
+                # el contacto ya existe → tratar como procesado (no reintentar)
+                print(f"omitido (ya existe) {sid}")
+                seen.add(sid)
+            else:
+                print(f"error procesando {sid}: {ex}")  # transitorio → reintentar luego
+            continue
         seen.add(sid)
         time.sleep(1)
     save_seen(seen)
