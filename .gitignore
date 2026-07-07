@@ -1,0 +1,36 @@
+# === SECRETOS — nunca commitear ===
+.env
+*.env
+!.env.example
+*.token
+.twenty_api_token
+.hubspot_token
+*_secret*
+*.key
+*.pem
+id_rsa*
+hostinger_vps*
+
+# === Estado de runtime de los scripts (se regenera en el VPS) ===
+*_seen.json
+hubspot_seen.json
+renovacion_seen.json
+
+# === Python ===
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# === Backups / dumps (pesados, no van al repo) ===
+*.dump
+*.sql
+*.sql.gz
+backups/
+
+# === SO / editor ===
+.DS_Store
+Thumbs.db
+*.swp
+nul

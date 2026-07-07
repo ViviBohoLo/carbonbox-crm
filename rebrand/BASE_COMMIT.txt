@@ -1,0 +1,2 @@
+9f4efa57ff5f2161d350e1463636489bc164cd2c
+9f4efa57ff5f2161d350e1463636489bc164cd2c 2026-07-03 18:01:40 +0200 Expose sent message identifiers in workflow send-email step output (#22520)

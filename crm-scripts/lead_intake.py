@@ -1,0 +1,181 @@
+#!/usr/bin/env python3
+"""Lógica reutilizable de alta de leads en el CRM CarbonBox.
+La usan el puente de HubSpot (transición) y el servidor de intake del formulario."""
+import sys
+sys.path.insert(0, "/root/crm-scripts")
+from crm_lib import gql, send_notification
+
+DOMINIOS_GRATIS = {"gmail.com", "hotmail.com", "outlook.com", "yahoo.com",
+                   "icloud.com", "live.com", "aol.com", "proton.me",
+                   "protonmail.com", "yahoo.es", "hotmail.es", "outlook.es"}
+
+PAIS_POR_INDICATIVO = {"+57": "COLOMBIA", "+52": "MEXICO", "+54": "ARGENTINA",
+                       "+56": "CHILE", "+51": "PERU"}
+
+
+def dominio_de_email(email):
+    if not email or "@" not in email:
+        return None
+    dom = email.split("@")[1].lower()
+    return None if dom in DOMINIOS_GRATIS else dom
+
+
+def pais_de_telefono(tel):
+    for ind, p in PAIS_POR_INDICATIVO.items():
+        if tel.startswith(ind):
+            return p
+    return None
+
+
+def origen_cors(origin):
+    """Devuelve el Origin a reflejar en CORS si es un sitio nuestro
+    (carbonbox.app, www, o un preview *.vercel.app); si no, cae al de producción."""
+    o = (origin or "").strip()
+    if o in ("https://carbonbox.app", "https://www.carbonbox.app") or o.endswith(".vercel.app"):
+        return o
+    return "https://carbonbox.app"
+
+
+class RateLimiter:
+    """Límite simple en memoria: N envíos por IP por hora (ventana deslizante)."""
+    def __init__(self, max_por_hora=5):
+        self.max = max_por_hora
+        self._hist = {}  # ip -> [timestamps]
+
+    def permite(self, ip, ahora):
+        h = [t for t in self._hist.get(ip, []) if ahora - t < 3600]
+        if len(h) >= self.max:
+            self._hist[ip] = h
+            return False
+        h.append(ahora)
+        self._hist[ip] = h
+        return True
+
+
+def es_bot(payload):
+    """Honeypot: los bots rellenan el campo oculto 'website'."""
+    return bool((payload.get("website") or "").strip())
+
+
+def mapear_form(payload):
+    """Payload plano del formulario web -> dict `datos` de crear_lead."""
+    def g(k):
+        return (payload.get(k) or "").strip()
+    return {
+        "nombre": g("firstname"),
+        "apellido": g("lastname"),
+        "email": g("email").lower(),
+        "tel": g("mobilephone").replace(" ", ""),
+        "empresa": g("company"),
+        "cargo": g("jobtitle"),
+        "ciudad": g("city"),
+        "necesidad": g("necesidad"),
+        "mensaje": g("describenos_cual_es_tu_necesidad"),
+    }
+
+
+def _crear_company(data):
+    d = gql("""mutation($data: CompanyCreateInput!) { createCompany(data:$data) { id } }""",
+            {"data": data})
+    return d["createCompany"]["id"]
+
+
+def find_or_create_company(nombre, dominio=None, pais=None, ciudad=None):
+    if not nombre:
+        return None
+    # dedup por nombre
+    d = gql("""query($n: String!) { companies(filter:{name:{ilike:$n}}, first:1) {
+        edges { node { id } } } }""", {"n": nombre})
+    if d["companies"]["edges"]:
+        return d["companies"]["edges"][0]["node"]["id"]
+    # dedup por dominio (dos personas de la misma empresa con nombre escrito distinto)
+    if dominio:
+        d = gql("""query($u: String!) { companies(filter:{domainName:{primaryLinkUrl:{ilike:$u}}}, first:1) {
+            edges { node { id } } } }""", {"u": f"%{dominio}%"})
+        if d["companies"]["edges"]:
+            return d["companies"]["edges"][0]["node"]["id"]
+    data = {"name": nombre}
+    if dominio:
+        data["domainName"] = {"primaryLinkUrl": f"https://{dominio}"}
+    if pais:
+        data["pais"] = pais
+    if ciudad:
+        data["address"] = {"addressCity": ciudad}
+    try:
+        return _crear_company(data)
+    except RuntimeError as ex:
+        # el dominio puede chocar con la restricción única (p.ej. empresa soft-deleted):
+        # no perder el lead -> crear la empresa sin el dominio.
+        if dominio and "duplicate" in str(ex).lower():
+            data.pop("domainName", None)
+            return _crear_company(data)
+        raise
+
+
+def crear_lead(datos):
+    """Crea Empresa(dedup)+Contacto(WEB)+Oportunidad(LEAD_CAPTURADO)+Nota.
+    Devuelve resumen o None si se omite (dup por email o sin datos minimos)."""
+    nombre = (datos.get("nombre") or "").strip()
+    apellido = (datos.get("apellido") or "").strip()
+    email = (datos.get("email") or "").strip().lower()
+    tel = (datos.get("tel") or "").replace(" ", "")
+    empresa = (datos.get("empresa") or "").strip()
+    cargo = (datos.get("cargo") or "").strip()
+    ciudad = (datos.get("ciudad") or "").strip()
+    necesidad = (datos.get("necesidad") or "").strip()
+    mensaje = (datos.get("mensaje") or "").strip()
+
+    if not email and not (nombre or apellido):
+        return None
+    if email:
+        d = gql("""query($e: String!) { people(filter:{emails:{primaryEmail:{eq:$e}}}, first:1) {
+            edges { node { id } } } }""", {"e": email})
+        if d["people"]["edges"]:
+            return None
+
+    company_id = find_or_create_company(
+        empresa,
+        dominio=dominio_de_email(email),
+        pais=pais_de_telefono(tel) or ("COLOMBIA" if tel and not tel.startswith("+") else None),
+        ciudad=ciudad or None)
+
+    pdata = {"name": {"firstName": nombre or "(sin nombre)", "lastName": apellido},
+             "fuenteLead": "WEB"}
+    if email:
+        pdata["emails"] = {"primaryEmail": email}
+    if tel:
+        pdata["phones"] = ({"primaryPhoneNumber": tel.lstrip("+"),
+                            "primaryPhoneCallingCode": "+" + tel.lstrip("+")[:2],
+                            "primaryPhoneCountryCode": "CO"} if tel.startswith("+")
+                           else {"primaryPhoneNumber": tel,
+                                 "primaryPhoneCallingCode": "+57",
+                                 "primaryPhoneCountryCode": "CO"})
+    if cargo:
+        pdata["jobTitle"] = cargo[:120]
+    if company_id:
+        pdata["companyId"] = company_id
+    d = gql("""mutation($data: PersonCreateInput!) { createPerson(data:$data) { id } }""",
+            {"data": pdata})
+    person_id = d["createPerson"]["id"]
+
+    opp_name = f"{empresa or (nombre + ' ' + apellido).strip()} — web"
+    odata = {"name": opp_name, "stage": "LEAD_CAPTURADO", "pointOfContactId": person_id}
+    if company_id:
+        odata["companyId"] = company_id
+    d = gql("""mutation($data: OpportunityCreateInput!) { createOpportunity(data:$data) { id } }""",
+            {"data": odata})
+    opp_id = d["createOpportunity"]["id"]
+
+    cuerpo = []
+    if necesidad:
+        cuerpo.append(f"**Necesidad:** {necesidad}")
+    if mensaje:
+        cuerpo.append(f"**Mensaje:** {mensaje}")
+    cuerpo.append("_Origen: formulario web carbonbox.app_")
+    d = gql("""mutation($data: NoteCreateInput!) { createNote(data:$data) { id } }""",
+            {"data": {"title": "Formulario web", "bodyV2": {"markdown": "\n\n".join(cuerpo)}}})
+    note_id = d["createNote"]["id"]
+    gql("""mutation($data: NoteTargetCreateInput!) { createNoteTarget(data:$data) { id } }""",
+        {"data": {"noteId": note_id, "targetOpportunityId": opp_id}})
+
+    return f"{nombre} {apellido} <{email}> — {empresa}"

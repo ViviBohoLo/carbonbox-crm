@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CarbonBox CRM — Guía del Funnel y Automatizaciones</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --indigo:#1620a4; --indigo-soft:#e9eaf7; --green:#2f6b4a; --mint:#7ed3a8;
+    --ink:#1f2937; --muted:#6b7280; --line:#e5e7eb; --bg:#f5f6fb; --card:#ffffff;
+    --amber:#b45309; --amber-soft:#fef3c7; --red:#b91c1c;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:'Poppins',-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
+    font-size:15px; line-height:1.6; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:940px; margin:0 auto; padding:0 20px 80px;}
+
+  /* Header */
+  header{
+    background:linear-gradient(135deg,var(--indigo) 0%,#2a35c9 60%,var(--green) 140%);
+    color:#fff; padding:48px 20px 42px; text-align:center; margin-bottom:0;
+  }
+  header .badge{
+    display:inline-block; font-size:12px; letter-spacing:.14em; text-transform:uppercase;
+    background:rgba(255,255,255,.16); padding:6px 14px; border-radius:999px; margin-bottom:18px; font-weight:500;
+  }
+  header h1{margin:0 0 10px; font-size:32px; font-weight:700; letter-spacing:-.01em;}
+  header p{margin:0 auto; max-width:620px; opacity:.92; font-size:16px; font-weight:300;}
+  header .meta{margin-top:20px; font-size:13px; opacity:.8;}
+
+  /* TOC */
+  .toc{
+    background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:20px 26px; margin:-28px auto 40px; max-width:900px; position:relative;
+    box-shadow:0 8px 24px rgba(22,32,164,.08);
+  }
+  .toc h2{margin:0 0 12px; font-size:13px; text-transform:uppercase; letter-spacing:.1em; color:var(--muted);}
+  .toc ol{margin:0; padding-left:20px; columns:2; column-gap:36px;}
+  .toc li{margin:5px 0; break-inside:avoid;}
+  .toc a{color:var(--indigo); text-decoration:none; font-weight:500;}
+  .toc a:hover{text-decoration:underline;}
+
+  section{margin:0 0 42px;}
+  h2.sec{
+    font-size:22px; font-weight:600; margin:0 0 6px; color:var(--indigo);
+    display:flex; align-items:center; gap:10px;
+  }
+  h2.sec .n{
+    display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px;
+    background:var(--indigo); color:#fff; border-radius:9px; font-size:15px; font-weight:600; flex:none;
+  }
+  .lead{color:var(--muted); margin:0 0 20px; max-width:720px;}
+
+  .card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:22px 24px; margin-bottom:16px;}
+
+  /* Pipeline flow */
+  .pipe{display:flex; flex-wrap:wrap; gap:8px; margin:6px 0 24px;}
+  .pipe .stg{
+    flex:1 1 auto; min-width:120px; background:var(--indigo-soft); border:1px solid #d3d6f0;
+    border-radius:10px; padding:10px 12px; font-size:12.5px; font-weight:600; color:var(--indigo);
+    display:flex; align-items:center; gap:7px;
+  }
+  .pipe .stg.win{background:#e6f5ec; border-color:#bfe5cd; color:var(--green);}
+  .pipe .stg.lost{background:#fdecec; border-color:#f4c9c9; color:var(--red);}
+  .pipe .stg.side{background:#f3f4f6; border-color:#e0e2e6; color:var(--muted);}
+  .pipe .stg .d{width:9px;height:9px;border-radius:50%;background:currentColor;opacity:.55;flex:none;}
+
+  table{width:100%; border-collapse:collapse; font-size:14px; margin:4px 0;}
+  th,td{text-align:left; padding:11px 12px; border-bottom:1px solid var(--line); vertical-align:top;}
+  th{background:#fafbff; font-weight:600; color:var(--indigo); font-size:12.5px; text-transform:uppercase; letter-spacing:.04em;}
+  tr:last-child td{border-bottom:none;}
+  td .stage{font-weight:600;}
+  .sla{display:inline-block; background:var(--amber-soft); color:var(--amber); font-weight:600; font-size:12.5px; padding:2px 9px; border-radius:6px; white-space:nowrap;}
+  .sla.none{background:#f3f4f6; color:var(--muted);}
+
+  /* Automation cards */
+  .auto{display:flex; gap:16px; padding:18px 20px; border:1px solid var(--line); border-radius:12px; background:var(--card); margin-bottom:12px;}
+  .auto .ico{font-size:24px; flex:none; width:44px; height:44px; border-radius:10px; background:var(--indigo-soft); display:flex; align-items:center; justify-content:center;}
+  .auto.cron .ico{background:#e6f5ec;}
+  .auto .body{flex:1;}
+  .auto h3{margin:0 0 3px; font-size:15.5px; font-weight:600;}
+  .auto .trg{font-size:12.5px; color:var(--muted); margin:0 0 7px;}
+  .auto .trg b{color:var(--green); font-weight:600;}
+  .auto p{margin:0; font-size:14px;}
+  .pill{display:inline-block; font-size:11px; font-weight:600; padding:2px 8px; border-radius:999px; margin-left:6px; vertical-align:middle;}
+  .pill.on{background:#e6f5ec; color:var(--green);}
+  .pill.off{background:#f3f4f6; color:var(--muted);}
+
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+  .fieldbox h4{margin:0 0 8px; font-size:13px; text-transform:uppercase; letter-spacing:.05em; color:var(--indigo);}
+  .fieldbox ul{margin:0; padding-left:18px;}
+  .fieldbox li{margin:3px 0; font-size:13.5px;}
+  code{background:#eef0f7; padding:1px 6px; border-radius:5px; font-size:12.5px; font-family:'SFMono-Regular',Consolas,monospace; color:var(--indigo);}
+
+  .note{border-left:4px solid var(--mint); background:#f0faf4; padding:14px 18px; border-radius:0 10px 10px 0; margin:14px 0; font-size:14px;}
+  .note.warn{border-color:var(--amber); background:var(--amber-soft);}
+  .note b{color:var(--green);}
+  .note.warn b{color:var(--amber);}
+
+  footer{text-align:center; color:var(--muted); font-size:12.5px; margin-top:50px; padding-top:24px; border-top:1px solid var(--line);}
+
+  @media (max-width:680px){
+    .toc ol{columns:1;} .grid2{grid-template-columns:1fr;} header h1{font-size:26px;}
+  }
+  @media print{
+    body{background:#fff;} .toc{box-shadow:none;} header{-webkit-print-color-adjust:exact; print-color-adjust:exact;}
+    .auto,.card,.pipe .stg,th,.sla,.pill,.note{-webkit-print-color-adjust:exact; print-color-adjust:exact;}
+    section{break-inside:avoid;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="badge">CarbonBox CRM · Guía interna</div>
+  <h1>El Funnel de Ventas y sus Automatizaciones</h1>
+  <p>Cómo fluye un cliente desde que llega hasta que renueva, y todo lo que el CRM hace solo en el camino.</p>
+  <div class="meta">Actualizado: 6 de julio de 2026 · CRM propio basado en Twenty</div>
+</header>
+
+<div class="wrap">
+
+  <nav class="toc">
+    <h2>Contenido</h2>
+    <ol>
+      <li><a href="#pipeline">El pipeline: las 10 etapas</a></li>
+      <li><a href="#slas">Los SLAs (tiempos de respuesta)</a></li>
+      <li><a href="#workflows">Automatizaciones por evento</a></li>
+      <li><a href="#crons">Los vigilantes automáticos</a></li>
+      <li><a href="#puente">Del formulario web al CRM</a></li>
+      <li><a href="#campos">Campos personalizados</a></li>
+      <li><a href="#operacion">Notas de operación</a></li>
+    </ol>
+  </nav>
+
+  <!-- 1. PIPELINE -->
+  <section id="pipeline">
+    <h2 class="sec"><span class="n">1</span>El pipeline: las 10 etapas</h2>
+    <p class="lead">Cada oportunidad de venta avanza por estas etapas. Las primeras seis son el camino activo; las últimas cuatro son estados de cierre o espera.</p>
+
+    <div class="pipe">
+      <div class="stg"><span class="d"></span>1 · Lead capturado</div>
+      <div class="stg"><span class="d"></span>2 · Calificación BANT</div>
+      <div class="stg"><span class="d"></span>3 · Demo</div>
+      <div class="stg"><span class="d"></span>4 · Piloto 45d</div>
+      <div class="stg"><span class="d"></span>5 · Propuesta enviada</div>
+      <div class="stg"><span class="d"></span>6 · En negociación</div>
+      <div class="stg win"><span class="d"></span>✓ Cerrado ganado</div>
+      <div class="stg win"><span class="d"></span>↻ Renovación</div>
+      <div class="stg side"><span class="d"></span>Nurturing</div>
+      <div class="stg lost"><span class="d"></span>Perdido</div>
+    </div>
+
+    <div class="card" style="padding:0;">
+      <table>
+        <tr><th>Etapa</th><th>Qué significa</th></tr>
+        <tr><td><span class="stage">Lead capturado</span></td><td>Entró un contacto nuevo (formulario web, alta manual o importación). Aún sin calificar.</td></tr>
+        <tr><td><span class="stage">Calificación BANT</span></td><td>Se evalúa si es un buen prospecto: <b>B</b>udget (presupuesto), <b>A</b>uthority (decisor), <b>N</b>eed (necesidad), <b>T</b>imeline (plazo).</td></tr>
+        <tr><td><span class="stage">Demo</span></td><td>Demostración de la plataforma agendada o realizada.</td></tr>
+        <tr><td><span class="stage">Piloto 45d</span></td><td>Prueba piloto de 45 días (pensada para el pipeline internacional).</td></tr>
+        <tr><td><span class="stage">Propuesta enviada</span></td><td>Se envió la propuesta comercial. Arranca la secuencia de seguimiento.</td></tr>
+        <tr><td><span class="stage">En negociación</span></td><td>Ajuste de términos, precio y condiciones antes del cierre.</td></tr>
+        <tr><td><span class="stage" style="color:var(--green)">Cerrado ganado</span></td><td>¡Cliente! Se disparan tareas de kick-off y activación, y entra a la ruta de renovación.</td></tr>
+        <tr><td><span class="stage" style="color:var(--green)">Renovación</span></td><td>Contrato próximo a vencer que se está gestionando para renovar.</td></tr>
+        <tr><td><span class="stage" style="color:var(--muted)">Nurturing</span></td><td>Lead frío o sin timing. Se mantiene con contacto de bajo ritmo hasta que reactive.</td></tr>
+        <tr><td><span class="stage" style="color:var(--red)">Perdido</span></td><td>No avanzó. Se registra <code>motivoPerdida</code> y <code>detallePerdida</code> para aprender.</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <!-- 2. SLAs -->
+  <section id="slas">
+    <h2 class="sec"><span class="n">2</span>Los SLAs (tiempos de respuesta)</h2>
+    <p class="lead"><b>SLA</b> viene de <i>Service Level Agreement</i> («acuerdo de nivel de servicio»): es el tiempo máximo que una oportunidad debería permanecer en una etapa sin avanzar. Si se pasa, el CRM crea una tarea urgente automáticamente (ver el Vigía SLA más abajo).</p>
+    <div class="note"><b>BANT</b>, que aparece como una de las etapas, es el método para calificar un prospecto por cuatro criterios: <b>B</b>udget (presupuesto), <b>A</b>uthority (quién decide la compra), <b>N</b>eed (necesidad real) y <b>T</b>imeline (plazo en que compraría).</div>
+
+    <div class="card" style="padding:0;">
+      <table>
+        <tr><th>Etapa</th><th>SLA</th><th>Si se vence…</th></tr>
+        <tr><td><span class="stage">Lead capturado</span></td><td><span class="sla">60 minutos</span></td><td>Contactar YA por email o llamada — un lead se enfría rápido.</td></tr>
+        <tr><td><span class="stage">Calificación BANT</span></td><td><span class="sla">72 horas</span></td><td>Último intento de contacto; si no responde, pasar a Nurturing.</td></tr>
+        <tr><td><span class="stage">Demo</span></td><td><span class="sla">7 días</span></td><td>Reagendar en 24h o mover a Nurturing si cancela dos veces.</td></tr>
+        <tr><td><span class="stage">Propuesta enviada</span></td><td><span class="sla">7 días</span></td><td>Llamar: «¿Tuvo oportunidad de revisar la propuesta?».</td></tr>
+        <tr><td><span class="stage">En negociación</span></td><td><span class="sla">21 días</span></td><td>Si no responde, pasar a Nurturing mensual y documentar.</td></tr>
+        <tr><td><span class="stage" style="color:var(--muted)">Otras etapas</span></td><td><span class="sla none">sin SLA</span></td><td>Piloto, Nurturing, cerradas: no generan alertas de tiempo.</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <!-- 3. WORKFLOWS -->
+  <section id="workflows">
+    <h2 class="sec"><span class="n">3</span>Automatizaciones por evento</h2>
+    <p class="lead">Se disparan al instante cuando pasa algo dentro del CRM (crear un contacto, cambiar de etapa, ganar un negocio…). Corren dentro de Twenty.</p>
+
+    <div class="auto">
+      <div class="ico">①</div>
+      <div class="body">
+        <h3>Lead nuevo → primer contacto <span class="pill on">activo</span></h3>
+        <p class="trg">Al <b>crear una oportunidad</b></p>
+        <p>Crea una tarea de «primer contacto» asignada a Viviana, con vencimiento inmediato (SLA 60 min). Nada se queda sin seguimiento.</p>
+      </div>
+    </div>
+
+    <div class="auto">
+      <div class="ico">🕐</div>
+      <div class="body">
+        <h3>Sello de etapa <span class="pill on">activo</span></h3>
+        <p class="trg">Al <b>cambiar la etapa</b> de una oportunidad</p>
+        <p>Estampa la fecha/hora de entrada a la nueva etapa (<code>fechaEntradaEtapa</code>). Es la base para medir todos los SLAs.</p>
+      </div>
+    </div>
+
+    <div class="auto">
+      <div class="ico">④</div>
+      <div class="body">
+        <h3>Propuesta enviada → seguimientos <span class="pill on">activo</span></h3>
+        <p class="trg">Al pasar a <b>Propuesta enviada</b></p>
+        <p>Programa dos tareas de seguimiento automáticas: una al <b>día 3</b> («¿revisó la propuesta?») y otra al <b>día 14</b> (llamada final de decisión).</p>
+      </div>
+    </div>
+
+    <div class="auto">
+      <div class="ico">⑥</div>
+      <div class="body">
+        <h3>Cerrado ganado → kick-off y activación <span class="pill on">activo</span></h3>
+        <p class="trg">Al pasar a <b>Cerrado ganado</b></p>
+        <p>Crea las tareas de arranque del cliente: reunión de kick-off y activación de la plataforma.</p>
+      </div>
+    </div>
+
+    <div class="auto">
+      <div class="ico">👋</div>
+      <div class="body">
+        <h3>Contacto nuevo → email de bienvenida <span class="pill on">activo</span></h3>
+        <p class="trg">Al <b>crear un contacto</b> que tenga email</p>
+        <p>Envía automáticamente el correo de bienvenida (desde <code>viviana.bohorquez@carbonbox.app</code>) con botón para <b>agendar asesoría</b> y contacto de WhatsApp.</p>
+      </div>
+    </div>
+
+    <div class="auto">
+      <div class="ico">📣</div>
+      <div class="body">
+        <h3>Notificador CRM <span class="pill on">activo</span></h3>
+        <p class="trg">Vía <b>webhook interno</b></p>
+        <p>Motor de avisos por correo a <code>info@carbonbox.app</code>. Lo usan los vigilantes automáticos para mandar sus alertas. <b>No borrar.</b></p>
+      </div>
+    </div>
+
+    <div class="auto">
+      <div class="ico">⚡</div>
+      <div class="body">
+        <h3>Quick Lead <span class="pill on">activo</span></h3>
+        <p class="trg">Plantilla de Twenty</p>
+        <p>Captura rápida de leads (formulario de alta veloz dentro del CRM).</p>
+      </div>
+    </div>
+
+    <div class="auto">
+      <div class="ico">🏢</div>
+      <div class="body">
+        <h3>Crear empresa al añadir contacto <span class="pill off">desactivado</span></h3>
+        <p class="trg">Plantilla de Twenty</p>
+        <p>Crearía una empresa automáticamente por cada persona nueva. Está apagado (generaba ruido). Se puede reactivar si se quiere.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. CRONS -->
+  <section id="crons">
+    <h2 class="sec"><span class="n">4</span>Los vigilantes automáticos</h2>
+    <p class="lead">Programas que corren solos en el servidor a intervalos fijos, revisando el CRM y actuando sin que nadie haga nada.</p>
+
+    <div class="auto cron">
+      <div class="ico">🛡️</div>
+      <div class="body">
+        <h3>Vigía SLA <span class="pill on">cada 30 min</span></h3>
+        <p class="trg">Revisa todas las oportunidades abiertas y los contratos ganados</p>
+        <p>Dos trabajos en uno: <b>(a)</b> si una oportunidad superó el SLA de su etapa, crea una tarea urgente; <b>(b)</b> si un contrato ganado se acerca a su vencimiento, avisa en los hitos <b>−90 / −60 / −30 días</b> con la acción de cada hito (propuesta anticipada → contrato → llamada de fidelización). Si hay novedades, manda un email de resumen.</p>
+      </div>
+    </div>
+
+    <div class="auto cron">
+      <div class="ico">📊</div>
+      <div class="body">
+        <h3>Reporte semanal <span class="pill on">lunes 8:00 am</span></h3>
+        <p class="trg">Cada inicio de semana</p>
+        <p>Envía por correo un resumen del pipeline: cuántas oportunidades hay en cada etapa. Foto rápida del estado comercial.</p>
+      </div>
+    </div>
+
+    <div class="auto cron">
+      <div class="ico">🔗</div>
+      <div class="body">
+        <h3>Puente formulario web <span class="pill on">cada 5 min</span></h3>
+        <p class="trg">Lee los envíos del formulario de carbonbox.app</p>
+        <p>Trae los leads del sitio web al CRM automáticamente (ver la sección siguiente).</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. PUENTE -->
+  <section id="puente">
+    <h2 class="sec"><span class="n">5</span>Del formulario web al CRM</h2>
+    <p class="lead">Cómo un lead que llena el formulario de la web termina, solo, como una oportunidad lista para trabajar.</p>
+
+    <div class="card">
+      <table>
+        <tr><th style="width:34px">#</th><th>Paso</th></tr>
+        <tr><td>1</td><td>Un visitante llena el formulario en <b>www.carbonbox.app</b>.</td></tr>
+        <tr><td>2</td><td>El <b>Puente</b> (cada 5 min) detecta el nuevo envío.</td></tr>
+        <tr><td>3</td><td>Crea en el CRM: <b>Empresa</b> + <b>Contacto</b> (marcado como fuente <code>WEB</code>) + <b>Oportunidad</b> en «Lead capturado» + una <b>Nota</b> con los datos del formulario.</td></tr>
+        <tr><td>4</td><td>Enriquece los datos: deduce el <b>país</b> por el indicativo telefónico y el <b>dominio</b> de la empresa desde el correo corporativo.</td></tr>
+        <tr><td>5</td><td>Al crear la oportunidad se dispara <b>①</b> → tarea de primer contacto, y al crear el contacto se dispara <b>👋</b> → correo de bienvenida.</td></tr>
+      </table>
+      <div class="note"><b>Resultado:</b> desde que alguien llena el formulario, en máximo 5 minutos ya hay una oportunidad en el CRM, una tarea asignada y un correo de bienvenida enviado — sin intervención manual.</div>
+    </div>
+  </section>
+
+  <!-- 6. CAMPOS -->
+  <section id="campos">
+    <h2 class="sec"><span class="n">6</span>Campos personalizados</h2>
+    <p class="lead">Campos propios que se agregaron a Twenty para el negocio de CarbonBox.</p>
+
+    <div class="grid2">
+      <div class="card fieldbox">
+        <h4>Oportunidad</h4>
+        <ul>
+          <li><code>planCarbonbox</code> — plan contratado</li>
+          <li><code>paisNegocio</code> — país de la operación</li>
+          <li><code>bantBudget / Authority / Need / Timeline</code> — calificación BANT</li>
+          <li><code>notaBant</code> — notas de calificación</li>
+          <li><code>fechaEntradaEtapa</code> — para medir SLAs</li>
+          <li><code>vencimientoContrato</code> — dispara renovación</li>
+          <li><code>motivoPerdida / detallePerdida</code> — por qué se perdió</li>
+        </ul>
+      </div>
+      <div class="card fieldbox">
+        <h4>Contacto</h4>
+        <ul>
+          <li><code>fuenteLead</code> — de dónde vino (WEB, manual…)</li>
+        </ul>
+        <h4 style="margin-top:16px;">Empresa</h4>
+        <ul>
+          <li><code>pais</code> — país</li>
+          <li><code>sector</code> — industria / sector</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. OPERACIÓN -->
+  <section id="operacion">
+    <h2 class="sec"><span class="n">7</span>Notas de operación</h2>
+
+    <div class="note">
+      <b>Dónde vive.</b> El CRM corre en tu PC (dentro de WSL2 + Docker), accesible en <code>http://localhost:3000</code>. Los contenedores se reinician solos tras reiniciar el equipo.
+    </div>
+    <div class="note">
+      <b>Los correos</b> salen desde la cuenta de Google Workspace, con remitente <code>viviana.bohorquez@carbonbox.app</code>.
+    </div>
+    <div class="note warn">
+      <b>Regla de oro.</b> Nunca se envían correos reales a clientes sin aprobación explícita. El correo de bienvenida ya está aprobado y activo; cualquier automatización nueva de envío se prueba primero a una bandeja interna.
+    </div>
+    <div class="note warn">
+      <b>Próximo salto (opcional).</b> Hoy todo depende de que el PC esté encendido. Llevar el CRM a un servidor público (VPS, ~USD 6–12/mes) lo haría accesible desde cualquier lado y permitiría que el formulario web escriba directo al CRM (sin el puente cada 5 min).
+    </div>
+  </section>
+
+  <footer>
+    CarbonBox CRM · Guía interna del funnel y las automatizaciones · 6 de julio de 2026<br>
+    Basado en Twenty (open source) · info@carbonbox.app · www.carbonbox.app
+  </footer>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,2 @@
+# Backup diario de la BD del CRM CarbonBox - 3:15 am
+15 3 * * * root /root/backup-db.sh >> /var/log/crm-backup.log 2>&1

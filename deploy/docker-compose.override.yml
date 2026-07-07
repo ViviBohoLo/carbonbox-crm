@@ -1,0 +1,5 @@
+services:
+  server:
+    image: carbonbox/crm:latest
+  worker:
+    image: carbonbox/crm:latest

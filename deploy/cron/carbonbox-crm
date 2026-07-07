@@ -1,0 +1,6 @@
+# Vigia SLA del funnel CarbonBox - cada 30 min
+*/30 * * * * root /usr/bin/python3 /root/crm-scripts/vigia_sla.py >> /var/log/crm-vigia.log 2>&1
+# Reporte semanal del pipeline - lunes 8:00 am
+0 8 * * 1 root /usr/bin/python3 /root/crm-scripts/reporte_semanal.py >> /var/log/crm-reporte.log 2>&1
+# Puente formulario web (HubSpot) -> CRM - cada 5 min
+*/5 * * * * root /usr/bin/python3 /root/crm-scripts/hubspot_bridge.py >> /var/log/crm-bridge.log 2>&1

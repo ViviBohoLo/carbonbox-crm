@@ -1,0 +1,15 @@
+[Unit]
+Description=CarbonBox intake del formulario web
+After=docker.service
+Wants=docker.service
+
+[Service]
+ExecStart=/usr/bin/python3 /root/crm-scripts/intake_server.py
+Restart=always
+RestartSec=3
+User=root
+StandardOutput=append:/var/log/carbonbox-intake.log
+StandardError=append:/var/log/carbonbox-intake.log
+
+[Install]
+WantedBy=multi-user.target

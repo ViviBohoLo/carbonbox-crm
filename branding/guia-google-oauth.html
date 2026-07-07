@@ -1,0 +1,262 @@
+<style>
+  * { box-sizing: border-box; }
+  :root {
+    --indigo:#1620a4; --indigo-deep:#0d1578; --indigo-soft:#ecedfb;
+    --green:#2f6b4a; --green-soft:#e8f1ec;
+    --amber:#8a5a12; --amber-soft:#f7ecdc; --amber-line:#e6c99a;
+    --ink:#0f1535; --ink-2:#41496a; --ink-3:#7a82a0;
+    --bg:#f6f7fc; --card:#ffffff; --line:#e6e8f2;
+    --font: 'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    --mono: ui-monospace, 'Cascadia Code', 'Cascadia Mono', Menlo, Consolas, monospace;
+  }
+  .wrap {
+    font-family: var(--font);
+    color: var(--ink);
+    background:
+      radial-gradient(1200px 400px at 100% -10%, #eceefb 0%, rgba(236,238,251,0) 60%),
+      var(--bg);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    padding: 40px 20px 72px;
+  }
+  .col { max-width: 760px; margin: 0 auto; }
+
+  /* Header */
+  .eyebrow {
+    display:inline-flex; align-items:center; gap:8px;
+    font-size: 12px; font-weight:600; letter-spacing:.09em; text-transform:uppercase;
+    color: var(--indigo); background: var(--indigo-soft);
+    padding: 6px 12px; border-radius: 999px;
+  }
+  h1 {
+    font-size: clamp(28px, 5vw, 40px); line-height:1.12; font-weight: 700;
+    letter-spacing: -0.02em; margin: 18px 0 10px; text-wrap: balance;
+    color: var(--ink);
+  }
+  h1 .g { color: var(--indigo); }
+  .lede { font-size: 17px; color: var(--ink-2); max-width: 60ch; margin: 0; }
+
+  /* Reference panel */
+  .ref {
+    margin: 32px 0 8px; background: var(--card); border:1px solid var(--line);
+    border-radius: 16px; padding: 22px 22px 8px;
+    box-shadow: 0 1px 2px rgba(15,21,53,.04), 0 12px 30px -18px rgba(22,32,164,.25);
+  }
+  .ref h2 {
+    font-size: 13px; text-transform: uppercase; letter-spacing:.08em;
+    color: var(--ink-3); margin: 0 0 4px; font-weight: 600;
+  }
+  .ref p.hint { margin: 0 0 14px; font-size: 14px; color: var(--ink-3); }
+  .field { margin-bottom: 14px; }
+  .field .lbl { font-size: 13px; font-weight:600; color: var(--ink-2); margin-bottom: 6px; display:block; }
+  .copyrow {
+    display:flex; align-items:stretch; gap:0; border:1px solid var(--line);
+    border-radius: 10px; overflow: hidden; background: #fbfbfe;
+  }
+  .copyrow code {
+    font-family: var(--mono); font-size: 13.5px; color: var(--indigo-deep);
+    padding: 11px 14px; flex:1; overflow-x:auto; white-space:nowrap; align-self:center;
+  }
+  .copybtn {
+    font-family: var(--font); font-weight:600; font-size:13px; cursor:pointer;
+    border:none; border-left:1px solid var(--line);
+    background: var(--green-soft); color: var(--green);
+    padding: 0 16px; transition: background .15s, color .15s; white-space:nowrap;
+  }
+  .copybtn:hover { background: var(--green); color:#fff; }
+  .copybtn.done { background: var(--green); color:#fff; }
+  .copybtn:focus-visible { outline: 3px solid var(--indigo-soft); outline-offset:-3px; }
+
+  /* Steps */
+  .steps { margin-top: 34px; display:flex; flex-direction:column; gap: 16px; }
+  .step {
+    background: var(--card); border:1px solid var(--line); border-radius: 16px;
+    padding: 22px 24px; display:grid; grid-template-columns: 44px 1fr; gap: 18px;
+    box-shadow: 0 1px 2px rgba(15,21,53,.03);
+  }
+  .num {
+    width:44px; height:44px; border-radius: 12px; display:flex; align-items:center; justify-content:center;
+    background: linear-gradient(150deg, var(--indigo), var(--indigo-deep));
+    color:#fff; font-weight:700; font-size:19px; box-shadow: 0 8px 18px -8px rgba(22,32,164,.7);
+  }
+  .step h3 { margin:2px 0 8px; font-size: 19px; font-weight:600; letter-spacing:-0.01em; }
+  .step p { margin: 0 0 8px; color: var(--ink-2); font-size: 15.5px; }
+  .step p:last-child { margin-bottom: 0; }
+  .step ul { margin: 6px 0 0; padding-left: 20px; color: var(--ink-2); font-size:15px; }
+  .step li { margin-bottom: 5px; }
+  .pill {
+    font-family: var(--mono); font-size: 13px; background: var(--indigo-soft);
+    color: var(--indigo-deep); padding: 2px 7px; border-radius: 5px; white-space:nowrap;
+  }
+  b, strong { color: var(--ink); font-weight: 600; }
+  a.link { color: var(--indigo); font-weight:600; text-decoration:none; border-bottom:1.5px solid var(--indigo-soft); }
+  a.link:hover { border-bottom-color: var(--indigo); }
+
+  /* Callout */
+  .callout {
+    grid-column: 1 / -1; margin-top: 4px;
+    background: var(--amber-soft); border:1px solid var(--amber-line);
+    border-radius: 12px; padding: 14px 16px; font-size: 14.5px; color: #6a4a12;
+    display:flex; gap:11px; align-items:flex-start;
+  }
+  .callout .ic { font-weight:700; color: var(--amber); flex-shrink:0; }
+  .callout b { color: #6a4a12; }
+
+  .finish {
+    margin-top: 22px; background: linear-gradient(150deg, var(--indigo), var(--indigo-deep));
+    color:#fff; border-radius: 16px; padding: 26px 26px;
+  }
+  .finish h3 { margin:0 0 8px; font-size: 20px; color:#fff; font-weight:600; }
+  .finish p { margin:0; color: rgba(255,255,255,.86); font-size: 15.5px; }
+  .finish .pill { background: rgba(255,255,255,.16); color:#fff; }
+
+  .foot { margin-top: 26px; font-size: 13.5px; color: var(--ink-3); text-align:center; line-height:1.7; }
+
+  @media (max-width: 520px) {
+    .step { grid-template-columns: 1fr; }
+    .num { width:38px; height:38px; font-size:17px; }
+  }
+</style>
+
+<div class="wrap">
+  <div class="col">
+
+    <span class="eyebrow">Configuración única · ~10 minutos</span>
+    <h1>Conectar <span class="g">Gmail</span> al CRM CarbonBox</h1>
+    <p class="lede">Esto le da permiso al CRM para enviar los correos del funnel (bienvenida, seguimientos, reporte semanal) desde <b>info@carbonbox.app</b> y para mostrar el historial de correos de cada cliente en su ficha. Lo haces una sola vez.</p>
+
+    <div class="ref">
+      <h2>Valores que vas a necesitar</h2>
+      <p class="hint">En el paso 5 Google te va a pedir estos datos. Cópialos desde aquí con el botón — así no hay errores de tipeo.</p>
+
+      <div class="field">
+        <span class="lbl">URI de redirección autorizado #1</span>
+        <div class="copyrow">
+          <code id="v1">http://localhost:3000/auth/google/redirect</code>
+          <button class="copybtn" data-copy="v1">Copiar</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <span class="lbl">URI de redirección autorizado #2</span>
+        <div class="copyrow">
+          <code id="v2">http://localhost:3000/auth/google-apis/get-access-token</code>
+          <button class="copybtn" data-copy="v2">Copiar</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <span class="lbl">Orígenes de JavaScript autorizados</span>
+        <div class="copyrow">
+          <code id="v3">http://localhost:3000</code>
+          <button class="copybtn" data-copy="v3">Copiar</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="steps">
+
+      <div class="step">
+        <div class="num">1</div>
+        <div>
+          <h3>Entra a Google Cloud Console</h3>
+          <p>Abre <a class="link" href="https://console.cloud.google.com" target="_blank" rel="noopener">console.cloud.google.com</a> e inicia sesión con <b>info@carbonbox.app</b>. Si es tu primera vez, acepta los términos. No necesitas tarjeta de crédito ni pagar nada.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="num">2</div>
+        <div>
+          <h3>Crea un proyecto</h3>
+          <p>Arriba a la izquierda, junto al logo de Google Cloud, haz clic en el selector de proyecto y luego en <b>“Proyecto nuevo”</b>. Ponle de nombre:</p>
+          <ul><li><span class="pill">CarbonBox CRM</span></li></ul>
+          <p>Créalo y, cuando termine, asegúrate de tenerlo <b>seleccionado</b> en ese mismo selector de arriba.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="num">3</div>
+        <div>
+          <h3>Configura la pantalla de consentimiento</h3>
+          <p>En el buscador de arriba escribe <b>“Google Auth Platform”</b> (o “Pantalla de consentimiento de OAuth”) y entra. Haz clic en <b>Comenzar / Configurar</b> y llena:</p>
+          <ul>
+            <li><b>Nombre de la app:</b> <span class="pill">CarbonBox CRM</span></li>
+            <li><b>Correo de asistencia:</b> info@carbonbox.app</li>
+            <li><b>Tipo de usuario / público:</b> elige <b>Interno</b></li>
+          </ul>
+          <div class="callout">
+            <span class="ic">★</span>
+            <div><b>El atajo clave:</b> como carbonbox.app es Google Workspace, elegir <b>“Interno”</b> hace que Google <b>no</b> te pida el proceso de verificación (que tarda días). Funciona al instante y solo para tu propia empresa. Si solo ves la opción “Externo”, también sirve — solo tendrás que agregarte como usuario de prueba.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="num">4</div>
+        <div>
+          <h3>Habilita las APIs de Gmail y Calendario</h3>
+          <p>En el buscador de arriba escribe <b>“Gmail API”</b>, entra y haz clic en <b>Habilitar</b>. Repite con <b>“Google Calendar API”</b>.</p>
+          <p>Estas son las que permiten enviar correos y sincronizar el calendario al CRM.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="num">5</div>
+        <div>
+          <h3>Crea las credenciales</h3>
+          <p>En el buscador escribe <b>“Credenciales”</b> y entra. Arriba: <b>+ Crear credenciales → ID de cliente de OAuth</b>. Luego:</p>
+          <ul>
+            <li><b>Tipo de aplicación:</b> <b>Aplicación web</b></li>
+            <li><b>Nombre:</b> <span class="pill">CarbonBox CRM Web</span></li>
+            <li>En <b>Orígenes de JavaScript autorizados</b> → <b>Agregar URI</b> → pega el valor de <b>Orígenes</b> del panel de arriba.</li>
+            <li>En <b>URIs de redirección autorizados</b> → <b>Agregar URI</b> dos veces y pega el <b>#1</b> y el <b>#2</b> del panel de arriba.</li>
+          </ul>
+          <p>Haz clic en <b>Crear</b>.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="num">6</div>
+        <div>
+          <h3>Copia el ID y el Secreto</h3>
+          <p>Al crear, Google te muestra una ventana con dos valores:</p>
+          <ul>
+            <li><b>ID de cliente</b> (termina en <span class="pill">.apps.googleusercontent.com</span>)</li>
+            <li><b>Secreto del cliente</b> (empieza por <span class="pill">GOCSPX-…</span>)</li>
+          </ul>
+          <p>Cópialos (o descarga el JSON) y <b>pégamelos en el chat</b>. Yo me encargo del resto de la configuración en el servidor.</p>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="finish">
+      <h3>Y ya 🎉</h3>
+      <p>Con esos dos valores configuro Twenty, reinicio el servidor y te aparecerá el botón para <b>conectar tu Gmail</b> dentro del CRM. Después probamos que un lead nuevo dispare su correo de bienvenida real.</p>
+    </div>
+
+    <p class="foot">
+      Estas credenciales son de <b>tu</b> empresa y solo viven en tu servidor local (localhost).<br>
+      El “Secreto” es como una contraseña: no lo compartas fuera de aquí.
+    </p>
+
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll('.copybtn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var el = document.getElementById(btn.getAttribute('data-copy'));
+      var text = el.textContent.trim();
+      navigator.clipboard.writeText(text).then(function () {
+        var prev = btn.textContent;
+        btn.textContent = '✓ Copiado';
+        btn.classList.add('done');
+        setTimeout(function () { btn.textContent = prev; btn.classList.remove('done'); }, 1600);
+      }).catch(function () {
+        var r = document.createRange(); r.selectNode(el);
+        var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      });
+    });
+  });
+</script>
