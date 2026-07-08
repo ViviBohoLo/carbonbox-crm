@@ -6,3 +6,5 @@
 */5 * * * * root /usr/bin/python3 /root/crm-scripts/hubspot_bridge.py >> /var/log/crm-bridge.log 2>&1
 # Sync de tareas CRM <-> Google Tasks (recordatorios al celular) - cada 10 min
 */10 * * * * root /usr/bin/python3 /root/crm-scripts/gtasks_sync.py >> /var/log/crm-gtasks.log 2>&1
+# Transcripts por empresa: renombra reservas (B) y archiva transcripts (C) - cada hora
+17 * * * * root /usr/bin/python3 /root/crm-scripts/calendar_transcripts.py >> /var/log/crm-transcripts.log 2>&1
