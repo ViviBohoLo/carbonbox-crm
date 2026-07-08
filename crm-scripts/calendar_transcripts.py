@@ -140,3 +140,27 @@ def archivar_transcripts(at, estado):
         estado.add(f["id"])
         print(f"[transcripts] archivado {f['name']} -> CMR/{empresa}", flush=True)
     return estado
+
+
+def cargar_estado():
+    try:
+        with open(ESTADO) as f:
+            return set(json.load(f))
+    except (FileNotFoundError, json.JSONDecodeError):
+        return set()
+
+
+def guardar_estado(estado):
+    with open(ESTADO, "w") as f:
+        json.dump(sorted(estado), f)
+
+
+def main():
+    at = c.google_access_token()
+    renombrar_reservas(at)                                 # B
+    estado = archivar_transcripts(at, cargar_estado())     # C
+    guardar_estado(estado)
+
+
+if __name__ == "__main__":
+    main()

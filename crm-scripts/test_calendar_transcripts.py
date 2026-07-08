@@ -149,5 +149,24 @@ class TestDriveBordes(unittest.TestCase):
         self.assertIn("A\\\\B\\'s", q)   # backslash duplicado y comilla escapada en la query
 
 
+class TestEstado(unittest.TestCase):
+    def setUp(self):
+        self._orig_estado = ct.ESTADO
+
+    def tearDown(self):
+        ct.ESTADO = self._orig_estado
+
+    def test_estado_round_trip(self):
+        import tempfile, os
+        ruta = os.path.join(tempfile.mkdtemp(), "s.json")
+        ct.ESTADO = ruta
+        ct.guardar_estado({"a", "b"})
+        self.assertEqual(ct.cargar_estado(), {"a", "b"})
+
+    def test_estado_vacio_si_no_existe(self):
+        ct.ESTADO = "/tmp/no-existe-xyz-carbonbox.json"
+        self.assertEqual(ct.cargar_estado(), set())
+
+
 if __name__ == "__main__":
     unittest.main()
