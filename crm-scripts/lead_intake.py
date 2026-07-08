@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Lógica reutilizable de alta de leads en el CRM CarbonBox.
 La usan el puente de HubSpot (transición) y el servidor de intake del formulario."""
+import html
+import re
 import sys
 sys.path.insert(0, "/root/crm-scripts")
 from crm_lib import gql, send_notification
@@ -109,9 +111,8 @@ def resumen_lead(datos):
     return linea + ("  ·  " + "  ·  ".join(extra) if extra else "")
 
 
-def ficha_persona(datos):
-    """Bloque multilínea con la info para poder llamar (nombre, empresa, teléfono,
-    correo, cargo/ciudad, necesidad). Va en el correo de aviso y en la nota."""
+def _pares_persona(datos):
+    """Los campos de la ficha, en orden, ya combinados (cargo·ciudad); sin los vacíos."""
     cargo_ciudad = " · ".join(x for x in [datos.get("cargo"), datos.get("ciudad")] if x)
     pares = [
         ("Nombre", " ".join(x for x in [datos.get("nombre"), datos.get("apellido")] if x).strip()),
@@ -122,7 +123,32 @@ def ficha_persona(datos):
         ("Necesidad", datos.get("necesidad")),
         ("Mensaje", datos.get("mensaje")),
     ]
-    return "\n".join(f"{etq}: {val}" for etq, val in pares if val)
+    return [(etq, val) for etq, val in pares if val]
+
+
+def ficha_persona(datos):
+    """Bloque multilínea en texto plano/markdown (para la nota del CRM)."""
+    return "\n".join(f"{etq}: {val}" for etq, val in _pares_persona(datos))
+
+
+def _valor_html(etq, val):
+    """El valor de un campo, escapado y — si es el teléfono — como enlace a WhatsApp
+    (wa.me/<solo dígitos>) para llamar/chatear de un clic desde el correo."""
+    esc = html.escape(str(val))
+    if etq == "Teléfono":
+        digitos = re.sub(r"\D", "", str(val))
+        if digitos:
+            return f'<a href="https://wa.me/{digitos}">{esc}</a> 💬 WhatsApp'
+    return esc
+
+
+def ficha_persona_html(datos):
+    """Igual que ficha_persona pero en HTML, para el correo de aviso. Twenty renderiza
+    el body del SEND_EMAIL como HTML: los '\\n' se colapsan y todo queda pegado → hay que
+    usar <br> y negritas, y escapar los valores del lead (pueden traer < & ")."""
+    return "<br>\n".join(
+        f"<strong>{etq}:</strong> {_valor_html(etq, val)}"
+        for etq, val in _pares_persona(datos))
 
 
 def _crear_company(data):

@@ -5,7 +5,7 @@ import json, time, traceback
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import sys
 sys.path.insert(0, "/root/crm-scripts")
-from lead_intake import mapear_form, es_bot, crear_lead, RateLimiter, origen_cors, ficha_persona
+from lead_intake import mapear_form, es_bot, crear_lead, RateLimiter, origen_cors, ficha_persona_html
 from crm_lib import send_notification
 
 HOST, PORT = "127.0.0.1", 8088
@@ -74,10 +74,10 @@ class Handler(BaseHTTPRequestHandler):
             try:
                 send_notification(
                     "🌐 1 lead nuevo desde la web",
-                    "Entró por el formulario de carbonbox.app y ya está en el CRM "
-                    "con su oportunidad y tarea de primer contacto:\n\n"
-                    + ficha_persona(datos)
-                    + "\n\nCRM: https://crm.carbonbox.app")
+                    "<p>Entró por el formulario de carbonbox.app y ya está en el CRM "
+                    "con su oportunidad y tarea de primer contacto:</p>\n"
+                    "<p>" + ficha_persona_html(datos) + "</p>\n"
+                    '<p><a href="https://crm.carbonbox.app">Abrir el CRM</a></p>')
             except Exception as ex:
                 print(f"[intake] aviso email fallo: {ex}", flush=True)
             print(f"[intake] lead creado: {resumen}", flush=True)

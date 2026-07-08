@@ -151,6 +151,29 @@ class TestFicha(unittest.TestCase):
         self.assertIn("+573001234567", r)
         self.assertIn("Ana Ruiz", r)
 
+    def test_ficha_html_usa_br_y_negritas(self):
+        # el correo se renderiza como HTML: '\n' se colapsa -> hay que usar <br> y <strong>
+        h = li.ficha_persona_html(self.DATOS)
+        self.assertIn("<br>", h)
+        self.assertIn("<strong>Nombre:</strong> Ana Ruiz", h)
+        self.assertIn("<strong>Correo:</strong> ana@acme.com", h)
+
+    def test_ficha_html_telefono_es_enlace_whatsapp(self):
+        h = li.ficha_persona_html({"nombre": "Ana", "tel": "+57 300 123 4567"})
+        self.assertIn('href="https://wa.me/573001234567"', h)  # wa.me: solo dígitos
+        self.assertIn("💬 WhatsApp", h)
+
+    def test_ficha_html_escapa_valores(self):
+        h = li.ficha_persona_html({"nombre": "A<b>", "mensaje": "x & y"})
+        self.assertIn("A&lt;b&gt;", h)
+        self.assertIn("x &amp; y", h)
+        self.assertNotIn("<b>", h)
+
+    def test_ficha_html_omite_vacios(self):
+        h = li.ficha_persona_html({"nombre": "Ana", "email": "a@x.com"})
+        self.assertIn("Ana", h)
+        self.assertNotIn("Teléfono", h)
+
 
 class TestEsDuplicado(unittest.TestCase):
     def test_detecta_duplicado(self):
