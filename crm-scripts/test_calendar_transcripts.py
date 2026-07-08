@@ -90,6 +90,23 @@ class TestRenombrar(unittest.TestCase):
         ct.renombrar_reservas(at="tok")
         self.assertEqual(self.patched, [("ev1", "itsinfocom.com — Llamada CarbonBox")])
 
+    def test_un_evento_que_falla_no_bloquea_los_demas(self):
+        ct.cal_list_upcoming = lambda at: [
+            {"id": "bad", "summary": "Hablemos de huellas de carbono",
+             "attendees": [{"email": "a@acme.com", "displayName": "A"}]},
+            {"id": "good", "summary": "Hablemos de huellas de carbono",
+             "attendees": [{"email": "b@beta.com", "displayName": "B"}]},
+        ]
+        def patch(at, eid, nuevo):
+            if eid == "bad":
+                raise RuntimeError("403")
+            self.patched.append((eid, nuevo))
+        ct.cal_patch_summary = patch
+        ct.empresa_de_correo = lambda e: None
+        hechos = ct.renombrar_reservas(at="tok")
+        self.assertEqual([e for e, _ in self.patched], ["good"])   # el bueno sí se renombró
+        self.assertEqual([e for e, _ in hechos], ["good"])
+
 
 class TestArchivar(unittest.TestCase):
     def setUp(self):
@@ -116,6 +133,21 @@ class TestArchivar(unittest.TestCase):
     def test_no_remueve_lo_ya_movido(self):
         ct.archivar_transcripts(at="tok", estado={"f1"})
         self.assertEqual(self.moved, [])
+
+    def test_un_archivo_que_falla_no_bloquea_ni_marca(self):
+        ct.drive_meet_recordings_files = lambda at: [
+            {"id": "bad", "name": "ACME — Llamada CarbonBox - Transcript", "parents": ["MEET"]},
+            {"id": "good", "name": "BETA — Llamada CarbonBox - Transcript", "parents": ["MEET"]},
+        ]
+        def mv(at, fid, nuevo, viejo):
+            if fid == "bad":
+                raise RuntimeError("500")
+            self.moved.append((fid, nuevo, viejo))
+        ct.drive_move = mv
+        estado = ct.archivar_transcripts(at="tok", estado=set())
+        self.assertEqual([m[0] for m in self.moved], ["good"])   # el bueno sí se movió
+        self.assertIn("good", estado)
+        self.assertNotIn("bad", estado)                          # el que falló NO se marca
 
 
 class TestDriveBordes(unittest.TestCase):
@@ -147,6 +179,11 @@ class TestDriveBordes(unittest.TestCase):
         ct.drive_find_folder("tok", "A\\B's")
         q = urllib.parse.unquote(urls[0])
         self.assertIn("A\\\\B\\'s", q)   # backslash duplicado y comilla escapada en la query
+
+    def test_patch_summary_no_notifica(self):
+        urls = self._capturar_url()
+        ct.cal_patch_summary("tok", "EV", "ITS — Llamada CarbonBox")
+        self.assertIn("sendUpdates=none", urls[0])
 
 
 class TestEstado(unittest.TestCase):

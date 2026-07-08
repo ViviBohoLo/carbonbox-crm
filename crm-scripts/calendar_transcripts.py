@@ -66,7 +66,7 @@ def cal_list_upcoming(at):
 
 
 def cal_patch_summary(at, event_id, nuevo):
-    url = f"{CAL_BASE}/calendars/{urllib.parse.quote(CAL_ID)}/events/{event_id}"
+    url = f"{CAL_BASE}/calendars/{urllib.parse.quote(CAL_ID)}/events/{event_id}?sendUpdates=none"
     _api(at, "PATCH", url, {"summary": nuevo})
 
 
@@ -75,14 +75,17 @@ def renombrar_reservas(at):
     for ev in cal_list_upcoming(at):
         if not es_reserva_sin_renombrar(ev):
             continue
-        inv = invitado_externo(ev)
-        email = inv.get("email", "")
-        empresa = empresa_de_correo(email)
-        nuevo = nombre_reunion(empresa, nombre=inv.get("displayName"),
-                               dominio=dominio_de_email(email))
-        cal_patch_summary(at, ev["id"], nuevo)
-        hechos.append((ev["id"], nuevo))
-        print(f"[transcripts] renombrado {ev['id']} -> {nuevo}", flush=True)
+        try:
+            inv = invitado_externo(ev)
+            email = inv.get("email", "")
+            empresa = empresa_de_correo(email)
+            nuevo = nombre_reunion(empresa, nombre=inv.get("displayName"),
+                                   dominio=dominio_de_email(email))
+            cal_patch_summary(at, ev["id"], nuevo)
+            hechos.append((ev["id"], nuevo))
+            print(f"[transcripts] renombrado {ev['id']} -> {nuevo}", flush=True)
+        except Exception as ex:
+            print(f"[transcripts] error renombrando {ev.get('id')}: {ex}", flush=True)
     return hechos
 
 
@@ -134,11 +137,14 @@ def archivar_transcripts(at, estado):
         empresa = empresa_de_nombre_archivo(f["name"])
         if not empresa:
             continue
-        destino = drive_ensure_folder(at, empresa, parent=CARPETA_RAIZ_ID)
-        viejo = (f.get("parents") or [None])[0]
-        drive_move(at, f["id"], destino, viejo)
-        estado.add(f["id"])
-        print(f"[transcripts] archivado {f['name']} -> CMR/{empresa}", flush=True)
+        try:
+            destino = drive_ensure_folder(at, empresa, parent=CARPETA_RAIZ_ID)
+            viejo = (f.get("parents") or [None])[0]
+            drive_move(at, f["id"], destino, viejo)
+            estado.add(f["id"])
+            print(f"[transcripts] archivado {f['name']} -> CMR/{empresa}", flush=True)
+        except Exception as ex:
+            print(f"[transcripts] error archivando {f.get('id')} ({f.get('name')}): {ex}", flush=True)
     return estado
 
 
@@ -157,9 +163,15 @@ def guardar_estado(estado):
 
 def main():
     at = c.google_access_token()
-    renombrar_reservas(at)                                 # B
-    estado = archivar_transcripts(at, cargar_estado())     # C
-    guardar_estado(estado)
+    try:
+        renombrar_reservas(at)                                 # B
+    except Exception as ex:
+        print(f"[transcripts] pasada B fallo: {ex}", flush=True)
+    try:
+        estado = archivar_transcripts(at, cargar_estado())     # C
+        guardar_estado(estado)
+    except Exception as ex:
+        print(f"[transcripts] pasada C fallo: {ex}", flush=True)
 
 
 if __name__ == "__main__":
