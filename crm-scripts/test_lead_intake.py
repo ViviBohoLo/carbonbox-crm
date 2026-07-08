@@ -130,6 +130,28 @@ class TestCrearLead(unittest.TestCase):
         self.assertEqual(st["person_creates"], 2)      # reintentó el create
 
 
+class TestFicha(unittest.TestCase):
+    DATOS = {"nombre": "Ana", "apellido": "Ruiz", "email": "ana@acme.com",
+             "tel": "+573001234567", "empresa": "Acme", "cargo": "CEO",
+             "ciudad": "Bogotá", "necesidad": "Huella", "mensaje": "Hola"}
+
+    def test_ficha_incluye_todo(self):
+        f = li.ficha_persona(self.DATOS)
+        for esperado in ["Ana Ruiz", "Acme", "+573001234567", "ana@acme.com", "CEO", "Bogotá", "Huella"]:
+            self.assertIn(esperado, f)
+
+    def test_ficha_omite_vacios(self):
+        f = li.ficha_persona({"nombre": "Ana", "email": "a@x.com"})
+        self.assertIn("Ana", f)
+        self.assertNotIn("Teléfono", f)
+
+    def test_resumen_incluye_empresa_y_telefono(self):
+        r = li.resumen_lead(self.DATOS)
+        self.assertIn("Acme", r)
+        self.assertIn("+573001234567", r)
+        self.assertIn("Ana Ruiz", r)
+
+
 class TestEsDuplicado(unittest.TestCase):
     def test_detecta_duplicado(self):
         self.assertTrue(li.es_duplicado(RuntimeError("A duplicate entry was detected")))

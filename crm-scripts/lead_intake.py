@@ -94,6 +94,37 @@ def es_duplicado(ex):
     return "duplicate" in m or "already exists" in m
 
 
+def resumen_lead(datos):
+    """Una línea con lo clave del lead (para bullets del puente y logs)."""
+    nombre = " ".join(x for x in [datos.get("nombre"), datos.get("apellido")] if x).strip()
+    partes = [nombre or "(sin nombre)"]
+    if datos.get("empresa"):
+        partes.append(datos["empresa"])
+    linea = " — ".join(partes)
+    extra = []
+    if datos.get("tel"):
+        extra.append(f"📞 {datos['tel']}")
+    if datos.get("email"):
+        extra.append(f"📧 {datos['email']}")
+    return linea + ("  ·  " + "  ·  ".join(extra) if extra else "")
+
+
+def ficha_persona(datos):
+    """Bloque multilínea con la info para poder llamar (nombre, empresa, teléfono,
+    correo, cargo/ciudad, necesidad). Va en el correo de aviso y en la nota."""
+    cargo_ciudad = " · ".join(x for x in [datos.get("cargo"), datos.get("ciudad")] if x)
+    pares = [
+        ("Nombre", " ".join(x for x in [datos.get("nombre"), datos.get("apellido")] if x).strip()),
+        ("Empresa", datos.get("empresa")),
+        ("Teléfono", datos.get("tel")),
+        ("Correo", datos.get("email")),
+        ("Cargo", cargo_ciudad),
+        ("Necesidad", datos.get("necesidad")),
+        ("Mensaje", datos.get("mensaje")),
+    ]
+    return "\n".join(f"{etq}: {val}" for etq, val in pares if val)
+
+
 def _crear_company(data):
     d = gql("""mutation($data: CompanyCreateInput!) { createCompany(data:$data) { id } }""",
             {"data": data})
@@ -209,16 +240,11 @@ def crear_lead(datos):
             {"data": odata})
     opp_id = d["createOpportunity"]["id"]
 
-    cuerpo = []
-    if necesidad:
-        cuerpo.append(f"**Necesidad:** {necesidad}")
-    if mensaje:
-        cuerpo.append(f"**Mensaje:** {mensaje}")
-    cuerpo.append("_Origen: formulario web carbonbox.app_")
+    cuerpo = ficha_persona(datos) + "\n\n_Origen: formulario web carbonbox.app_"
     d = gql("""mutation($data: NoteCreateInput!) { createNote(data:$data) { id } }""",
-            {"data": {"title": "Formulario web", "bodyV2": {"markdown": "\n\n".join(cuerpo)}}})
+            {"data": {"title": "Formulario web", "bodyV2": {"markdown": cuerpo}}})
     note_id = d["createNote"]["id"]
     gql("""mutation($data: NoteTargetCreateInput!) { createNoteTarget(data:$data) { id } }""",
         {"data": {"noteId": note_id, "targetOpportunityId": opp_id}})
 
-    return f"{nombre} {apellido} <{email}> — {empresa}"
+    return resumen_lead(datos)
