@@ -15,6 +15,7 @@ hostinger_vps*
 *_seen.json
 hubspot_seen.json
 renovacion_seen.json
+gtasks_map.json
 
 # === Python ===
 __pycache__/
