@@ -119,8 +119,12 @@ class TestRenombrar(unittest.TestCase):
 
 class TestArchivar(unittest.TestCase):
     def setUp(self):
+        # OJO: mockear también opp_de_empresa — si no, archivar_transcripts llega al
+        # CRM REAL vía c.gql (pasó: ensució la opp de ITS con un link f1 falso).
         self._orig = {n: getattr(ct, n) for n in
-                      ("drive_meet_recordings_files", "drive_ensure_folder", "drive_move")}
+                      ("drive_meet_recordings_files", "drive_ensure_folder", "drive_move",
+                       "opp_de_empresa")}
+        ct.opp_de_empresa = lambda e: None   # sin CRM: "sin oportunidad viva"
         self.moved = []
         ct.drive_meet_recordings_files = lambda at: [
             {"id": "f1", "name": "ITS — Hablemos de huellas de carbono (2026-07-10) - Transcript",
@@ -193,6 +197,84 @@ class TestDriveBordes(unittest.TestCase):
         urls = self._capturar_url()
         ct.cal_patch_summary("tok", "EV", "ITS — Hablemos de huellas de carbono")
         self.assertIn("sendUpdates=none", urls[0])
+
+
+class TestPublicarCRM(unittest.TestCase):
+    """Al archivar un transcript, el link de Drive debe quedar en la oportunidad."""
+
+    def setUp(self):
+        self._orig_gql = ct.c.gql
+
+    def tearDown(self):
+        ct.c.gql = self._orig_gql
+
+    def test_opp_de_empresa_encuentra_la_mas_reciente_viva(self):
+        def fake_gql(q, v=None):
+            if "companies(" in q:
+                return {"companies": {"edges": [{"node": {"id": "co-1"}}]}}
+            if "opportunities(" in q:
+                return {"opportunities": {"edges": [{"node": {"id": "op-9"}}]}}
+            raise AssertionError(q)
+        ct.c.gql = fake_gql
+        self.assertEqual(ct.opp_de_empresa("ITS"), "op-9")
+
+    def test_opp_de_empresa_sin_empresa_devuelve_none(self):
+        ct.c.gql = lambda q, v=None: {"companies": {"edges": []}}
+        self.assertIsNone(ct.opp_de_empresa("Desconocida"))
+
+    def test_publicar_escribe_link_y_nota(self):
+        mutaciones = []
+        def fake_gql(q, v=None):
+            mutaciones.append((q, v))
+            if "updateOpportunity" in q:
+                return {"updateOpportunity": {"id": "op-9"}}
+            if "createNote(" in q:
+                return {"createNote": {"id": "no-1"}}
+            if "createNoteTarget" in q:
+                return {"createNoteTarget": {"id": "nt-1"}}
+            raise AssertionError(q)
+        ct.c.gql = fake_gql
+        ct.publicar_transcript_crm("op-9", "FILE123", "ITS — Hablemos de huellas de carbono - Transcript")
+        texto = " ".join(q for q, _ in mutaciones)
+        self.assertIn("updateOpportunity", texto)
+        self.assertIn("createNote(", texto)
+        self.assertIn("createNoteTarget", texto)
+        # el link de Drive va en el campo y en la nota
+        upd = next(v for q, v in mutaciones if "updateOpportunity" in q)
+        self.assertIn("drive.google.com/file/d/FILE123", str(upd))
+
+    def test_archivar_publica_en_crm(self):
+        self._orig = {n: getattr(ct, n) for n in
+                      ("drive_meet_recordings_files", "drive_ensure_folder", "drive_move",
+                       "opp_de_empresa", "publicar_transcript_crm")}
+        publicados = []
+        ct.drive_meet_recordings_files = lambda at: [
+            {"id": "f1", "name": "ITS — Hablemos de huellas de carbono - Transcript", "parents": ["MEET"]}]
+        ct.drive_ensure_folder = lambda at, nombre, parent=None: "FID"
+        ct.drive_move = lambda at, fid, nuevo, viejo: None
+        ct.opp_de_empresa = lambda e: "op-9"
+        ct.publicar_transcript_crm = lambda opp, fid, nombre: publicados.append((opp, fid))
+        estado = ct.archivar_transcripts(at="tok", estado=set())
+        self.assertEqual(publicados, [("op-9", "f1")])
+        self.assertIn("f1", estado)
+        for n, v in self._orig.items():
+            setattr(ct, n, v)
+
+    def test_fallo_del_crm_no_impide_archivar(self):
+        self._orig = {n: getattr(ct, n) for n in
+                      ("drive_meet_recordings_files", "drive_ensure_folder", "drive_move",
+                       "opp_de_empresa")}
+        ct.drive_meet_recordings_files = lambda at: [
+            {"id": "f1", "name": "ITS — Hablemos de huellas de carbono - Transcript", "parents": ["MEET"]}]
+        ct.drive_ensure_folder = lambda at, nombre, parent=None: "FID"
+        ct.drive_move = lambda at, fid, nuevo, viejo: None
+        def boom(e):
+            raise RuntimeError("CRM caido")
+        ct.opp_de_empresa = boom
+        estado = ct.archivar_transcripts(at="tok", estado=set())
+        self.assertIn("f1", estado)   # el archivo quedó archivado igual
+        for n, v in self._orig.items():
+            setattr(ct, n, v)
 
 
 class TestEstado(unittest.TestCase):

@@ -135,6 +135,43 @@ def drive_move(at, file_id, nuevo_parent, viejo_parent):
     _api(at, "PATCH", url, {})
 
 
+# Etapas del funnel donde una oportunidad sigue "viva" (todas menos PERDIDO;
+# el filtro GraphQL de Twenty no acepta notIn -> lista explícita con in).
+ETAPAS_VIVAS = ["LEAD_CAPTURADO", "CALIFICACION_BANT", "DEMO", "PILOTO_45D",
+                "PROPUESTA_ENVIADA", "EN_NEGOCIACION", "CERRADO_GANADO",
+                "RENOVACION", "NURTURING"]
+
+
+def opp_de_empresa(empresa):
+    """Oportunidad más reciente NO perdida de la empresa (por nombre; la carpeta
+    del transcript se llama igual que la empresa del CRM o su dominio)."""
+    d = c.gql("""query($n: String!) { companies(filter:{name:{ilike:$n}}, first:1) {
+        edges { node { id } } } }""", {"n": empresa})
+    if not d["companies"]["edges"]:
+        return None
+    company_id = d["companies"]["edges"][0]["node"]["id"]
+    d = c.gql("""query($co: UUID!, $st: [String!]) { opportunities(
+        filter:{companyId:{eq:$co}, stage:{in:$st}},
+        orderBy:{createdAt: DescNullsLast}, first:1) {
+        edges { node { id } } } }""", {"co": company_id, "st": ETAPAS_VIVAS})
+    edges = d["opportunities"]["edges"]
+    return edges[0]["node"]["id"] if edges else None
+
+
+def publicar_transcript_crm(opp_id, file_id, nombre_archivo):
+    """Escribe el link del transcript en la oportunidad + nota visible."""
+    url = f"https://drive.google.com/file/d/{file_id}/view"
+    c.gql("""mutation($id: UUID!, $data: OpportunityUpdateInput!) {
+        updateOpportunity(id:$id, data:$data) { id } }""",
+        {"id": opp_id, "data": {"linkTranscripcion": {
+            "primaryLinkUrl": url, "primaryLinkLabel": "Transcript de la llamada"}}})
+    d = c.gql("""mutation($data: NoteCreateInput!) { createNote(data:$data) { id } }""",
+              {"data": {"title": "🎙️ Transcript de la llamada",
+                        "bodyV2": {"markdown": f"[{nombre_archivo}]({url})"}}})
+    c.gql("""mutation($data: NoteTargetCreateInput!) { createNoteTarget(data:$data) { id } }""",
+          {"data": {"noteId": d["createNote"]["id"], "targetOpportunityId": opp_id}})
+
+
 def archivar_transcripts(at, estado):
     for f in drive_meet_recordings_files(at):
         if f["id"] in estado:
@@ -150,6 +187,17 @@ def archivar_transcripts(at, estado):
             print(f"[transcripts] archivado {f['name']} -> CMR/{empresa}", flush=True)
         except Exception as ex:
             print(f"[transcripts] error archivando {f.get('id')} ({f.get('name')}): {ex}", flush=True)
+            continue
+        # Link al CRM: mejor esfuerzo — un fallo aquí NO deshace el archivado.
+        try:
+            opp = opp_de_empresa(empresa)
+            if opp:
+                publicar_transcript_crm(opp, f["id"], f["name"])
+                print(f"[transcripts] link publicado en opp {opp} ({empresa})", flush=True)
+            else:
+                print(f"[transcripts] sin oportunidad viva para '{empresa}'; link no publicado", flush=True)
+        except Exception as ex:
+            print(f"[transcripts] error publicando en CRM ({empresa}): {ex}", flush=True)
     return estado
 
 
