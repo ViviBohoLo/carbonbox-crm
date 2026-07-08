@@ -4,18 +4,18 @@ import calendar_transcripts as ct
 
 class TestNombres(unittest.TestCase):
     def test_titulo_con_empresa(self):
-        self.assertEqual(ct.nombre_reunion("ITS"), "ITS — Llamada CarbonBox")
+        self.assertEqual(ct.nombre_reunion("ITS"), "ITS — Hablemos de huellas de carbono")
 
     def test_titulo_cae_a_dominio_si_no_hay_empresa(self):
         self.assertEqual(ct.nombre_reunion("", nombre="Yurany", dominio="itsinfocom.com"),
-                         "itsinfocom.com — Llamada CarbonBox")
+                         "itsinfocom.com — Hablemos de huellas de carbono")
 
     def test_titulo_cae_a_nombre_si_correo_gratuito(self):
         self.assertEqual(ct.nombre_reunion("", nombre="Yurany", dominio=None),
-                         "Yurany — Llamada CarbonBox")
+                         "Yurany — Hablemos de huellas de carbono")
 
     def test_parsea_empresa_de_transcript(self):
-        fn = "ITS — Llamada CarbonBox (2026-07-10 at 14:00) - Transcript"
+        fn = "ITS — Hablemos de huellas de carbono (2026-07-10 at 14:00) - Transcript"
         self.assertEqual(ct.empresa_de_nombre_archivo(fn), "ITS")
 
     def test_archivo_ajeno_devuelve_none(self):
@@ -39,7 +39,7 @@ class TestDeteccion(unittest.TestCase):
         self.assertTrue(ct.es_reserva_sin_renombrar(ev))
 
     def test_ya_renombrado_no_es_reserva(self):
-        ev = dict(self.EV, summary="ITS — Llamada CarbonBox")
+        ev = dict(self.EV, summary="ITS — Hablemos de huellas de carbono")
         self.assertFalse(ct.es_reserva_sin_renombrar(ev))
 
     def test_titulo_parecido_pero_corto_no_es_reserva(self):
@@ -77,7 +77,7 @@ class TestRenombrar(unittest.TestCase):
             {"id": "ev1", "summary": "Hablemos de huellas de carbono con CarbonBox (Yurany Martinez)",
              "attendees": [{"email": "info@carbonbox.app", "self": True},
                            {"email": "ymartinez03@itsinfocom.com", "displayName": "Yurany"}]},
-            {"id": "ev2", "summary": "ITS — Llamada CarbonBox",   # ya renombrado
+            {"id": "ev2", "summary": "ITS — Hablemos de huellas de carbono",   # ya renombrado
              "attendees": [{"email": "x@itsinfocom.com"}]},
             {"id": "ev3", "summary": "Reunión interna",
              "attendees": [{"email": "info@carbonbox.app", "self": True}]},
@@ -91,13 +91,13 @@ class TestRenombrar(unittest.TestCase):
 
     def test_solo_renombra_la_reserva_pendiente(self):
         hechos = ct.renombrar_reservas(at="tok")
-        self.assertEqual(self.patched, [("ev1", "ITS — Llamada CarbonBox")])
-        self.assertEqual(hechos, [("ev1", "ITS — Llamada CarbonBox")])
+        self.assertEqual(self.patched, [("ev1", "ITS — Hablemos de huellas de carbono")])
+        self.assertEqual(hechos, [("ev1", "ITS — Hablemos de huellas de carbono")])
 
     def test_sin_empresa_cae_a_dominio(self):
         ct.empresa_de_correo = lambda e: None
         ct.renombrar_reservas(at="tok")
-        self.assertEqual(self.patched, [("ev1", "itsinfocom.com — Llamada CarbonBox")])
+        self.assertEqual(self.patched, [("ev1", "itsinfocom.com — Hablemos de huellas de carbono")])
 
     def test_un_evento_que_falla_no_bloquea_los_demas(self):
         ct.cal_list_upcoming = lambda at: [
@@ -123,7 +123,7 @@ class TestArchivar(unittest.TestCase):
                       ("drive_meet_recordings_files", "drive_ensure_folder", "drive_move")}
         self.moved = []
         ct.drive_meet_recordings_files = lambda at: [
-            {"id": "f1", "name": "ITS — Llamada CarbonBox (2026-07-10) - Transcript",
+            {"id": "f1", "name": "ITS — Hablemos de huellas de carbono (2026-07-10) - Transcript",
              "parents": ["MEET"]},
             {"id": "f2", "name": "Reunión equipo - Notas", "parents": ["MEET"]},  # ajeno
         ]
@@ -145,8 +145,8 @@ class TestArchivar(unittest.TestCase):
 
     def test_un_archivo_que_falla_no_bloquea_ni_marca(self):
         ct.drive_meet_recordings_files = lambda at: [
-            {"id": "bad", "name": "ACME — Llamada CarbonBox - Transcript", "parents": ["MEET"]},
-            {"id": "good", "name": "BETA — Llamada CarbonBox - Transcript", "parents": ["MEET"]},
+            {"id": "bad", "name": "ACME — Hablemos de huellas de carbono - Transcript", "parents": ["MEET"]},
+            {"id": "good", "name": "BETA — Hablemos de huellas de carbono - Transcript", "parents": ["MEET"]},
         ]
         def mv(at, fid, nuevo, viejo):
             if fid == "bad":
@@ -191,7 +191,7 @@ class TestDriveBordes(unittest.TestCase):
 
     def test_patch_summary_no_notifica(self):
         urls = self._capturar_url()
-        ct.cal_patch_summary("tok", "EV", "ITS — Llamada CarbonBox")
+        ct.cal_patch_summary("tok", "EV", "ITS — Hablemos de huellas de carbono")
         self.assertIn("sendUpdates=none", urls[0])
 
 

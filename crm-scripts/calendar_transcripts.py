@@ -14,7 +14,7 @@ CAL_BASE = "https://www.googleapis.com/calendar/v3"
 # Google titula las reservas "<título del schedule> (<nombre de quien reserva>)",
 # por eso se compara por PREFIJO, no por igualdad.
 TITULO_SCHEDULE = "Hablemos de huellas de carbono con CarbonBox"
-SUFIJO = " — Llamada CarbonBox"
+SUFIJO = " — Hablemos de huellas de carbono"
 CARPETA_RAIZ_ID = "1LljLcmMKs7Yg_sdrQziReNXjWykfAKHQ"   # carpeta "CMR" en el Drive de info@carbonbox.app
 ESTADO = "/root/crm-scripts/transcripts_movidos.json"
 
