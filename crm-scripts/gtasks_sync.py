@@ -60,6 +60,20 @@ def _due(dueAt):
     return dueAt[:10] + "T00:00:00.000Z" if dueAt else ""
 
 
+def titulo_gtask(title, dueAt):
+    """Título para la Google Task con fecha+hora en Bogotá, ej. '📞 Llamar — 07/07 2:30pm'.
+    La Tasks API descarta la hora del due -> la única forma de verla en el celular es
+    ponerla en el título. Colombia no tiene horario de verano: UTC-5 fijo."""
+    if not dueAt:
+        return title
+    from datetime import datetime, timezone, timedelta
+    dt = datetime.fromisoformat(dueAt.replace("Z", "+00:00")).astimezone(
+        timezone(timedelta(hours=-5)))
+    h12 = dt.hour % 12 or 12
+    ampm = "am" if dt.hour < 12 else "pm"
+    return f"{title} — {dt.day:02d}/{dt.month:02d} {h12}:{dt.minute:02d}{ampm}"
+
+
 def _notas_de_opp(opp):
     """Ficha de la persona de la oportunidad (para poder llamar)."""
     if not opp:
@@ -108,7 +122,8 @@ def crm_tareas_abiertas():
     for e in tasks:
         n = e["node"]
         opp = opps.get(_opp_id_de_tarea(n))
-        out[n["id"]] = {"title": n["title"], "notes": _notas_de_opp(opp), "due": _due(n.get("dueAt"))}
+        out[n["id"]] = {"title": titulo_gtask(n["title"], n.get("dueAt")),
+                        "notes": _notas_de_opp(opp), "due": _due(n.get("dueAt"))}
     return out
 
 

@@ -36,5 +36,29 @@ class TestPlanSync(unittest.TestCase):
         self.assertEqual(acc, [{"op": "create", "crm": "c1", "data": T}])
 
 
+class TestTituloGtask(unittest.TestCase):
+    """La Tasks API descarta la hora del due -> la hora va en el TÍTULO (hora Bogotá)."""
+
+    def test_agrega_fecha_y_hora_bogota(self):
+        # 19:30 UTC = 2:30pm en Bogotá (UTC-5)
+        self.assertEqual(g.titulo_gtask("📞 Contactar a X", "2026-07-07T19:30:00.000Z"),
+                         "📞 Contactar a X — 07/07 2:30pm")
+
+    def test_manana_y_mediodia(self):
+        self.assertEqual(g.titulo_gtask("T", "2026-07-08T13:05:00.000Z"), "T — 08/07 8:05am")
+        self.assertEqual(g.titulo_gtask("T", "2026-07-08T17:00:00.000Z"), "T — 08/07 12:00pm")
+
+    def test_medianoche_bogota(self):
+        self.assertEqual(g.titulo_gtask("T", "2026-07-08T05:00:00.000Z"), "T — 08/07 12:00am")
+
+    def test_cruce_de_dia(self):
+        # 03:00 UTC del día 8 = 10:00pm del día 7 en Bogotá
+        self.assertEqual(g.titulo_gtask("T", "2026-07-08T03:00:00.000Z"), "T — 07/07 10:00pm")
+
+    def test_sin_due_queda_igual(self):
+        self.assertEqual(g.titulo_gtask("T", None), "T")
+        self.assertEqual(g.titulo_gtask("T", ""), "T")
+
+
 if __name__ == "__main__":
     unittest.main()
