@@ -7,9 +7,13 @@ sys.path.insert(0, "/root/crm-scripts")
 import crm_lib as c
 from lead_intake import dominio_de_email
 
-CAL_ID = "info@carbonbox.app"
+# Las reservas del appointment schedule caen en el calendario secundario "Viviana",
+# no en info@carbonbox.app (verificado con una reserva real 2026-07-07).
+CAL_ID = "c_82bb139624394ed888e1230ed865b3a186e89bc0188db1c21d543459c34feaec@group.calendar.google.com"
 CAL_BASE = "https://www.googleapis.com/calendar/v3"
-TITULO_SCHEDULE = "Hablemos de huellas de carbono"   # título exacto del appointment schedule
+# Google titula las reservas "<título del schedule> (<nombre de quien reserva>)",
+# por eso se compara por PREFIJO, no por igualdad.
+TITULO_SCHEDULE = "Hablemos de huellas de carbono con CarbonBox"
 SUFIJO = " — Llamada CarbonBox"
 CARPETA_RAIZ_ID = "1LljLcmMKs7Yg_sdrQziReNXjWykfAKHQ"   # carpeta "CMR" en el Drive de info@carbonbox.app
 ESTADO = "/root/crm-scripts/transcripts_movidos.json"
@@ -34,7 +38,8 @@ def invitado_externo(event):
 
 
 def es_reserva_sin_renombrar(event):
-    return event.get("summary", "").strip() == TITULO_SCHEDULE and invitado_externo(event) is not None
+    return (event.get("summary", "").strip().startswith(TITULO_SCHEDULE)
+            and invitado_externo(event) is not None)
 
 
 def empresa_de_correo(email):

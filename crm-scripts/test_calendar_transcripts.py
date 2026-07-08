@@ -23,7 +23,8 @@ class TestNombres(unittest.TestCase):
 
 
 class TestDeteccion(unittest.TestCase):
-    EV = {"summary": "Hablemos de huellas de carbono",
+    # Google titula la reserva "<título del schedule> (<nombre de quien reserva>)"
+    EV = {"summary": "Hablemos de huellas de carbono con CarbonBox (Yurany Martinez)",
           "attendees": [{"email": "info@carbonbox.app", "self": True},
                         {"email": "ymartinez03@itsinfocom.com", "displayName": "Yurany"}]}
 
@@ -33,12 +34,20 @@ class TestDeteccion(unittest.TestCase):
     def test_es_reserva(self):
         self.assertTrue(ct.es_reserva_sin_renombrar(self.EV))
 
+    def test_es_reserva_sin_nombre_apendido(self):
+        ev = dict(self.EV, summary="Hablemos de huellas de carbono con CarbonBox")
+        self.assertTrue(ct.es_reserva_sin_renombrar(ev))
+
     def test_ya_renombrado_no_es_reserva(self):
         ev = dict(self.EV, summary="ITS — Llamada CarbonBox")
         self.assertFalse(ct.es_reserva_sin_renombrar(ev))
 
+    def test_titulo_parecido_pero_corto_no_es_reserva(self):
+        ev = dict(self.EV, summary="Hablemos de huellas de carbono")   # otro evento manual
+        self.assertFalse(ct.es_reserva_sin_renombrar(ev))
+
     def test_sin_invitado_externo_no_es_reserva(self):
-        ev = {"summary": "Hablemos de huellas de carbono",
+        ev = {"summary": "Hablemos de huellas de carbono con CarbonBox (X)",
               "attendees": [{"email": "info@carbonbox.app", "self": True}]}
         self.assertFalse(ct.es_reserva_sin_renombrar(ev))
 
@@ -65,7 +74,7 @@ class TestRenombrar(unittest.TestCase):
                       ("cal_list_upcoming", "cal_patch_summary", "empresa_de_correo")}
         self.patched = []
         ct.cal_list_upcoming = lambda at: [
-            {"id": "ev1", "summary": "Hablemos de huellas de carbono",
+            {"id": "ev1", "summary": "Hablemos de huellas de carbono con CarbonBox (Yurany Martinez)",
              "attendees": [{"email": "info@carbonbox.app", "self": True},
                            {"email": "ymartinez03@itsinfocom.com", "displayName": "Yurany"}]},
             {"id": "ev2", "summary": "ITS — Llamada CarbonBox",   # ya renombrado
@@ -92,9 +101,9 @@ class TestRenombrar(unittest.TestCase):
 
     def test_un_evento_que_falla_no_bloquea_los_demas(self):
         ct.cal_list_upcoming = lambda at: [
-            {"id": "bad", "summary": "Hablemos de huellas de carbono",
+            {"id": "bad", "summary": "Hablemos de huellas de carbono con CarbonBox (A)",
              "attendees": [{"email": "a@acme.com", "displayName": "A"}]},
-            {"id": "good", "summary": "Hablemos de huellas de carbono",
+            {"id": "good", "summary": "Hablemos de huellas de carbono con CarbonBox (B)",
              "attendees": [{"email": "b@beta.com", "displayName": "B"}]},
         ]
         def patch(at, eid, nuevo):
