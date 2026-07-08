@@ -79,5 +79,26 @@ class TestRenombrar(unittest.TestCase):
         self.assertEqual(self.patched, [("ev1", "itsinfocom.com — Llamada CarbonBox")])
 
 
+class TestArchivar(unittest.TestCase):
+    def setUp(self):
+        self.moved = []
+        ct.drive_meet_recordings_files = lambda at: [
+            {"id": "f1", "name": "ITS — Llamada CarbonBox (2026-07-10) - Transcript",
+             "parents": ["MEET"]},
+            {"id": "f2", "name": "Reunión equipo - Notas", "parents": ["MEET"]},  # ajeno
+        ]
+        ct.drive_ensure_folder = lambda at, nombre, parent=None: "FID-" + nombre
+        ct.drive_move = lambda at, fid, nuevo, viejo: self.moved.append((fid, nuevo, viejo))
+
+    def test_mueve_solo_transcripts_nuestros_no_movidos(self):
+        estado = ct.archivar_transcripts(at="tok", estado=set())
+        self.assertEqual(self.moved, [("f1", "FID-ITS", "MEET")])
+        self.assertIn("f1", estado)
+
+    def test_no_remueve_lo_ya_movido(self):
+        ct.archivar_transcripts(at="tok", estado={"f1"})
+        self.assertEqual(self.moved, [])
+
+
 if __name__ == "__main__":
     unittest.main()
