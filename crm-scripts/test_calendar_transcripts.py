@@ -42,6 +42,12 @@ class TestDeteccion(unittest.TestCase):
               "attendees": [{"email": "info@carbonbox.app", "self": True}]}
         self.assertFalse(ct.es_reserva_sin_renombrar(ev))
 
+    def setUp(self):
+        self._orig_gql = ct.c.gql
+
+    def tearDown(self):
+        ct.c.gql = self._orig_gql
+
     def test_empresa_de_correo(self):
         def fake_gql(q, v=None):
             return {"people": {"edges": [{"node": {"company": {"name": "ITS"}}}]}}
@@ -55,6 +61,8 @@ class TestDeteccion(unittest.TestCase):
 
 class TestRenombrar(unittest.TestCase):
     def setUp(self):
+        self._orig = {n: getattr(ct, n) for n in
+                      ("cal_list_upcoming", "cal_patch_summary", "empresa_de_correo")}
         self.patched = []
         ct.cal_list_upcoming = lambda at: [
             {"id": "ev1", "summary": "Hablemos de huellas de carbono",
@@ -67,6 +75,10 @@ class TestRenombrar(unittest.TestCase):
         ]
         ct.cal_patch_summary = lambda at, eid, nuevo: self.patched.append((eid, nuevo))
         ct.empresa_de_correo = lambda e: "ITS"
+
+    def tearDown(self):
+        for n, v in self._orig.items():
+            setattr(ct, n, v)
 
     def test_solo_renombra_la_reserva_pendiente(self):
         hechos = ct.renombrar_reservas(at="tok")
@@ -81,6 +93,8 @@ class TestRenombrar(unittest.TestCase):
 
 class TestArchivar(unittest.TestCase):
     def setUp(self):
+        self._orig = {n: getattr(ct, n) for n in
+                      ("drive_meet_recordings_files", "drive_ensure_folder", "drive_move")}
         self.moved = []
         ct.drive_meet_recordings_files = lambda at: [
             {"id": "f1", "name": "ITS — Llamada CarbonBox (2026-07-10) - Transcript",
@@ -90,6 +104,10 @@ class TestArchivar(unittest.TestCase):
         ct.drive_ensure_folder = lambda at, nombre, parent=None: "FID-" + nombre
         ct.drive_move = lambda at, fid, nuevo, viejo: self.moved.append((fid, nuevo, viejo))
 
+    def tearDown(self):
+        for n, v in self._orig.items():
+            setattr(ct, n, v)
+
     def test_mueve_solo_transcripts_nuestros_no_movidos(self):
         estado = ct.archivar_transcripts(at="tok", estado=set())
         self.assertEqual(self.moved, [("f1", "FID-ITS", "MEET")])
@@ -98,6 +116,37 @@ class TestArchivar(unittest.TestCase):
     def test_no_remueve_lo_ya_movido(self):
         ct.archivar_transcripts(at="tok", estado={"f1"})
         self.assertEqual(self.moved, [])
+
+
+class TestDriveBordes(unittest.TestCase):
+    def setUp(self):
+        self._orig_api = ct._api
+
+    def tearDown(self):
+        ct._api = self._orig_api
+
+    def _capturar_url(self):
+        urls = []
+        ct._api = lambda at, method, url, body=None: (urls.append(url) or {"id": "x"})
+        return urls
+
+    def test_move_sin_parent_no_manda_removeparents(self):
+        urls = self._capturar_url()
+        ct.drive_move("tok", "F", "DEST", None)     # archivo sin parent previo
+        self.assertIn("addParents=DEST", urls[0])
+        self.assertNotIn("removeParents", urls[0])
+
+    def test_move_con_parent_manda_removeparents(self):
+        urls = self._capturar_url()
+        ct.drive_move("tok", "F", "DEST", "MEET")
+        self.assertIn("removeParents=MEET", urls[0])
+
+    def test_find_folder_escapa_backslash_y_comilla(self):
+        import urllib.parse
+        urls = self._capturar_url()
+        ct.drive_find_folder("tok", "A\\B's")
+        q = urllib.parse.unquote(urls[0])
+        self.assertIn("A\\\\B\\'s", q)   # backslash duplicado y comilla escapada en la query
 
 
 if __name__ == "__main__":

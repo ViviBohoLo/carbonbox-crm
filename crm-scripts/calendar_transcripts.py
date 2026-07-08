@@ -95,7 +95,7 @@ def _drive_q(at, q, fields="files(id,name,parents)"):
 
 
 def drive_find_folder(at, nombre, parent=None):
-    nombre_esc = nombre.replace("'", "\\'")
+    nombre_esc = nombre.replace("\\", "\\\\").replace("'", "\\'")
     q = (f"mimeType='application/vnd.google-apps.folder' and name='{nombre_esc}' and trashed=false")
     if parent:
         q += f" and '{parent}' in parents"
@@ -121,8 +121,9 @@ def drive_meet_recordings_files(at):
 
 
 def drive_move(at, file_id, nuevo_parent, viejo_parent):
-    url = (f"{DRIVE_BASE}/files/{file_id}"
-           f"?addParents={nuevo_parent}&removeParents={viejo_parent}&fields=id")
+    url = f"{DRIVE_BASE}/files/{file_id}?addParents={nuevo_parent}&fields=id"
+    if viejo_parent:                       # si el archivo no traía parent, solo lo añadimos
+        url += f"&removeParents={viejo_parent}"
     _api(at, "PATCH", url, {})
 
 
