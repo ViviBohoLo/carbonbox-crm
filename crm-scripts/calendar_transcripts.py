@@ -21,3 +21,25 @@ def nombre_reunion(empresa, nombre=None, dominio=None):
 def empresa_de_nombre_archivo(filename):
     i = filename.find(SUFIJO)
     return filename[:i].strip() if i > 0 else None
+
+
+def invitado_externo(event):
+    for a in event.get("attendees", []):
+        email = (a.get("email") or "").lower()
+        if email and not email.endswith("@carbonbox.app"):
+            return a
+    return None
+
+
+def es_reserva_sin_renombrar(event):
+    return event.get("summary", "").strip() == TITULO_SCHEDULE and invitado_externo(event) is not None
+
+
+def empresa_de_correo(email):
+    d = c.gql("""query($e: String!) { people(filter:{emails:{primaryEmail:{eq:$e}}}, first:1) {
+        edges { node { company { name } } } } }""", {"e": email.lower()})
+    edges = d["people"]["edges"]
+    if not edges:
+        return None
+    comp = edges[0]["node"].get("company")
+    return (comp or {}).get("name")
