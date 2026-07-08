@@ -9,7 +9,7 @@
 - Completar/borrar en el CRM -> se completa la Google Task.
 - Conflicto: "completada gana".
 Estado del mapeo: /root/crm-scripts/gtasks_map.json (crmTaskId -> googleTaskId)."""
-import json, os, sys, urllib.request, urllib.parse, urllib.error
+import json, os, sys, urllib.request, urllib.error
 sys.path.insert(0, "/root/crm-scripts")
 import crm_lib as c
 
@@ -21,19 +21,7 @@ MAP_FILE = "/root/crm-scripts/gtasks_map.json"
 
 # ---------- Google Tasks API ----------
 def gt_access_token():
-    cid = secret = None
-    for line in open("/root/twenty/.env"):
-        if line.startswith("AUTH_GOOGLE_CLIENT_ID="):
-            cid = line.split("=", 1)[1].strip()
-        if line.startswith("AUTH_GOOGLE_CLIENT_SECRET="):
-            secret = line.split("=", 1)[1].strip()
-    rt = open("/root/.gtasks_token").read().strip()
-    data = urllib.parse.urlencode({
-        "client_id": cid, "client_secret": secret,
-        "refresh_token": rt, "grant_type": "refresh_token"}).encode()
-    out = json.load(urllib.request.urlopen(
-        urllib.request.Request("https://oauth2.googleapis.com/token", data=data), timeout=30))
-    return out["access_token"]
+    return c.google_access_token()
 
 
 def _api(at, method, path, body=None):

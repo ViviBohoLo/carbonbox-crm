@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Librería compartida de los scripts cron del CRM CarbonBox."""
-import json, urllib.request
+import json, urllib.request, urllib.parse
 from datetime import datetime, timezone
 
 CORE = "http://localhost:3000/graphql"
@@ -135,3 +135,21 @@ def send_notification(subject, body):
                                  headers={"Content-Type": "application/json"})
     with urllib.request.urlopen(req, timeout=30) as r:
         return r.status < 300
+
+
+def google_access_token(refresh_file="/root/.gtasks_token", env_file="/root/twenty/.env"):
+    """Access token Bearer para las APIs de Google (Tasks/Calendar/Drive), a partir del
+    refresh token compartido y el client 'CarbonBox CRM Web' de /root/twenty/.env."""
+    cid = secret = None
+    for line in open(env_file):
+        if line.startswith("AUTH_GOOGLE_CLIENT_ID="):
+            cid = line.split("=", 1)[1].strip()
+        if line.startswith("AUTH_GOOGLE_CLIENT_SECRET="):
+            secret = line.split("=", 1)[1].strip()
+    rt = open(refresh_file).read().strip()
+    data = urllib.parse.urlencode({
+        "client_id": cid, "client_secret": secret,
+        "refresh_token": rt, "grant_type": "refresh_token"}).encode()
+    out = json.load(urllib.request.urlopen(
+        urllib.request.Request("https://oauth2.googleapis.com/token", data=data), timeout=30))
+    return out["access_token"]
