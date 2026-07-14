@@ -1,0 +1,30 @@
+{
+  "slug": "yauto-sas",
+  "activo": false,
+  "titulo": "Compensaciones que sí suman: cómo saber si un crédito de carbono es real y transparente",
+  "invitado": "Yauto SAS",
+  "fecha_hora": "2026-08-05T10:00:00-05:00",
+  "zona_texto": "hora Colombia",
+  "meet_link": "",
+  "add_to_calendar_link": "",
+  "form_url": "",
+  "sheet_id": "",
+  "sheet_rango": "Respuestas de formulario 1!A:Z",
+  "columnas": {
+    "email": "Correo electrónico",
+    "nombre": "Nombre",
+    "apellido": "Apellido",
+    "tel": "Teléfono",
+    "empresa": "Empresa",
+    "cargo": "Cargo",
+    "ciudad": "Ciudad",
+    "acepta_marketing": "Acepto recibir información de CarbonBox"
+  },
+  "adelanto": "Adelanto: abriremos la \"caja negra\" de un crédito de carbono y compartiremos un checklist práctico de due diligence.",
+  "youtube_id": "",
+  "youtube_url": "",
+  "cta_texto": "Antes de compensar, mide. Agenda un diagnóstico gratuito de tu huella de carbono con CarbonBox.",
+  "cta_boton": "Agendar diagnóstico gratuito",
+  "cta_url": "https://calendar.app.google/Ede9nmxveoahb5by8",
+  "_notas": "Copia este archivo a <slug>.json (sin .example) y pon activo=true cuando el Form y el Sheet estén listos. El campo 'columnas' debe casar EXACTAMENTE con los títulos de las preguntas del Google Form. meet_link y add_to_calendar_link los genera Claude cuando confirmes la fecha con el invitado."
+}

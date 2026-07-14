@@ -10,3 +10,7 @@
 */10 * * * * root /usr/bin/python3 /root/crm-scripts/gtasks_sync.py >> /var/log/crm-gtasks.log 2>&1
 # Transcripts por empresa: renombra reservas (B) y archiva transcripts (C) - cada hora
 17 * * * * root /usr/bin/python3 /root/crm-scripts/calendar_transcripts.py >> /var/log/crm-transcripts.log 2>&1
+# Webinars (Fase B): intake del Sheet cada 5 min; recordatorios y post cada hora.
+*/5 * * * *  root  /usr/bin/python3 /root/crm-scripts/webinar_intake.py        >> /var/log/carbonbox-crm.log 2>&1
+7   * * * *  root  /usr/bin/python3 /root/crm-scripts/webinar_recordatorios.py >> /var/log/carbonbox-crm.log 2>&1
+9   * * * *  root  /usr/bin/python3 /root/crm-scripts/webinar_post.py          >> /var/log/carbonbox-crm.log 2>&1
