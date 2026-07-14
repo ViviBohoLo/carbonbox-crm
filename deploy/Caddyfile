@@ -2,6 +2,9 @@ crm.carbonbox.app {
 	handle /intake* {
 		reverse_proxy 127.0.0.1:8088
 	}
+	handle /seguimiento* {
+		reverse_proxy 127.0.0.1:8088
+	}
 	handle {
 		reverse_proxy localhost:3000
 	}

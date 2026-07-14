@@ -1,67 +1,81 @@
 #!/usr/bin/env python3
 """Reporte semanal del pipeline — lunes 8:00 am por cron.
-Resumen por etapa + negocios en riesgo, enviado por email vía el Notificador."""
+Conteo/valor por etapa + leads sin contactar + negocios estancados, por email."""
 import sys
 sys.path.insert(0, "/root/crm-scripts")
-from datetime import timedelta
-from crm_lib import (get_all_opportunities, get_open_opportunities,
-                     send_notification, now_utc, parse_dt)
+from crm_lib import (ETAPAS, nombre_etapa, pesos, clasificar_riesgo,
+                     get_all_opportunities, get_open_opportunities,
+                     send_notification, now_utc)
 
 ORDEN = ["LEAD_CAPTURADO", "CALIFICACION_BANT", "DEMO", "PILOTO_45D",
          "PROPUESTA_ENVIADA", "EN_NEGOCIACION", "CERRADO_GANADO",
          "RENOVACION", "NURTURING", "PERDIDO"]
-NOMBRES = {
-    "LEAD_CAPTURADO": "① Lead Capturado", "CALIFICACION_BANT": "② Calificación BANT",
-    "DEMO": "③ Demo", "PILOTO_45D": "③b Piloto 45d", "PROPUESTA_ENVIADA": "④ Propuesta Enviada",
-    "EN_NEGOCIACION": "⑤ En Negociación", "CERRADO_GANADO": "⑥ Cerrado Ganado",
-    "RENOVACION": "⑦ Renovación", "NURTURING": "Nurturing", "PERDIDO": "Perdido",
-}
-SLAS_H = {"LEAD_CAPTURADO": 1, "CALIFICACION_BANT": 72, "DEMO": 168,
-          "PROPUESTA_ENVIADA": 168, "EN_NEGOCIACION": 504}
+CRM_URL = "https://crm.carbonbox.app"
 
-opps = get_all_opportunities()
-ahora = now_utc()
 
-conteo = {}
-valor = {}
-for o in opps:
-    s = o["stage"]
-    conteo[s] = conteo.get(s, 0) + 1
-    micros = (o.get("amount") or {}).get("amountMicros") or 0
-    valor[s] = valor.get(s, 0) + (int(micros) / 1_000_000 if micros else 0)
+def construir_reporte(opps_all, opps_open, ahora, link_fn=None):
+    conteo, valor = {}, {}
+    for o in opps_all:
+        s = o["stage"]
+        conteo[s] = conteo.get(s, 0) + 1
+        micros = (o.get("amount") or {}).get("amountMicros") or 0
+        valor[s] = valor.get(s, 0) + (int(micros) / 1_000_000 if micros else 0)
 
-lineas = [f"REPORTE SEMANAL DEL PIPELINE — {ahora.strftime('%d/%m/%Y')}", ""]
-lineas.append("Negocios por etapa:")
-total = 0
-for s in ORDEN:
-    if conteo.get(s):
-        v = f" (${valor[s]:,.0f})" if valor.get(s) else ""
-        lineas.append(f"  {NOMBRES[s]}: {conteo[s]}{v}")
-        total += conteo[s]
-lineas.append(f"  TOTAL: {total} negocios")
+    leads, estancados = clasificar_riesgo(opps_open, ahora)
+    total = sum(conteo.values())
+    en_riesgo = len(leads) + len(estancados)
 
-# en riesgo (SLA vencido ahora mismo)
-riesgo = []
-for o in get_open_opportunities():
-    s = o["stage"]
-    if s in SLAS_H:
-        entrada = parse_dt(o.get("fechaEntradaEtapa")) or parse_dt(o["createdAt"])
-        if entrada:
-            horas = (ahora - entrada).total_seconds() / 3600
-            if horas > SLAS_H[s]:
-                riesgo.append(f"  🔴 {o['name']} — {NOMBRES.get(s, s)}, {round(horas/24, 1)} días sin avanzar")
+    L = ["**REPORTE SEMANAL DEL PIPELINE**", ahora.strftime("%d/%m/%Y"), ""]
+    aten = f" · **{en_riesgo} necesitan atención esta semana**" if en_riesgo else ""
+    L.append(f"{total} negocios en el funnel{aten}.")
+    L += ["", "**── NEGOCIOS POR ETAPA ──**"]
+    for s in ORDEN:
+        if conteo.get(s):
+            v = f" · {pesos(valor[s])}" if valor.get(s) else ""
+            L.append(f"  {nombre_etapa(s)}: {conteo[s]}{v}")
+    L.append(f"  Total: {total} negocios")
 
-lineas.append("")
-if riesgo:
-    lineas.append(f"⚠️ En riesgo ({len(riesgo)}):")
-    lineas.extend(riesgo)
-else:
-    lineas.append("✅ Sin negocios en riesgo de SLA.")
+    if leads:
+        L += ["", f"**── LEADS SIN PRIMER CONTACTO ({len(leads)}) ──**",
+              "Un lead nuevo debe contactarse en la 1.ª hora; se enfría rápido."]
+        for it in leads:
+            L.append(f"  • **{it['nombre']}** — capturado hace {it['antiguedad']}")
+        L.append("  → Contactar hoy por correo o llamada.")
 
-lineas += ["", "Metas del funnel: 25 MQL/mes · 10 demos/mes · 5-6 propuestas/mes · 3-4 cierres/mes",
-           "CRM: http://localhost:3000"]
+    if estancados:
+        L += ["", f"**── NEGOCIOS ESTANCADOS ({len(estancados)}) ──**",
+              "Del más atrasado al menos. «Límite» = tiempo máximo en esa etapa sin avanzar."]
+        for i, it in enumerate(estancados, 1):
+            val = f"   {it['valor']}" if it['valor'] else ""
+            L.append("")
+            L.append(f" {i}. **{it['nombre']}**{val}")
+            L.append(f"    {it['etapa']} hace {it['antiguedad']} (límite {it['limite']}).")
+            if it['accion']:
+                L.append(f"    → {it['accion']}")
+            url = link_fn(it) if link_fn else None
+            if url:
+                L.append(f"    ✉️ [Enviar recordatorio]({url})")
 
-body = "\n".join(lineas)
-ok = send_notification(f"📊 Pipeline CarbonBox — semana del {ahora.strftime('%d/%m')}", body)
-print("reporte enviado" if ok else "reporte NO enviado (notificador no configurado)")
-print(body)
+    if not en_riesgo:
+        L += ["", "✅ Sin negocios en riesgo esta semana."]
+
+    L += ["", "**── METAS DEL MES ──**",
+          "  25 MQL · 10 demos · 5-6 propuestas · 3-4 cierres",
+          "", f"Abrir el CRM → {CRM_URL}"]
+    return "\n".join(L)
+
+
+if __name__ == "__main__":
+    from seguimiento import firmar, secreto, tiene_plantilla
+    ahora = now_utc()
+    _sec = secreto()
+
+    def _link(it):
+        if not tiene_plantilla(it["stage"]):
+            return None
+        return f"{CRM_URL}/seguimiento?opp={it['id']}&sig={firmar(it['id'], _sec)}"
+
+    body = construir_reporte(get_all_opportunities(), get_open_opportunities(), ahora, link_fn=_link)
+    ok = send_notification(f"📊 Pipeline CarbonBox — semana del {ahora.strftime('%d/%m')}", body)
+    print("reporte enviado" if ok else "reporte NO enviado")
+    print(body)

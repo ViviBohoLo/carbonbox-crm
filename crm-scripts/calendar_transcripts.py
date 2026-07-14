@@ -70,6 +70,25 @@ def cal_list_upcoming(at):
     return _api(at, "GET", url).get("items", [])
 
 
+def correos_agendados(at, dias_atras=45, dias_adelante=120):
+    """Conjunto de correos (minúsculas) que aparecen como invitados en el calendario
+    de reservas, en una ventana amplia. Sirve para saber si un lead ya agendó."""
+    from datetime import datetime, timezone, timedelta
+    now = datetime.now(timezone.utc)
+    tmin = (now - timedelta(days=dias_atras)).isoformat()
+    tmax = (now + timedelta(days=dias_adelante)).isoformat()
+    url = (f"{CAL_BASE}/calendars/{urllib.parse.quote(CAL_ID)}/events"
+           f"?singleEvents=true&orderBy=startTime&maxResults=250"
+           f"&timeMin={urllib.parse.quote(tmin)}&timeMax={urllib.parse.quote(tmax)}")
+    correos = set()
+    for ev in _api(at, "GET", url).get("items", []):
+        for a in ev.get("attendees", []):
+            e = (a.get("email") or "").lower().strip()
+            if e:
+                correos.add(e)
+    return correos
+
+
 def cal_patch_summary(at, event_id, nuevo):
     url = f"{CAL_BASE}/calendars/{urllib.parse.quote(CAL_ID)}/events/{event_id}?sendUpdates=none"
     _api(at, "PATCH", url, {"summary": nuevo})

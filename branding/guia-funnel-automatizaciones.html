@@ -112,6 +112,35 @@
     .auto,.card,.pipe .stg,th,.sla,.pill,.note{-webkit-print-color-adjust:exact; print-color-adjust:exact;}
     section{break-inside:avoid;}
   }
+
+  /* Catálogo de alertas + antes/después */
+  .ba{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:14px 0;}
+  .ba .col{border:1px solid var(--line); border-radius:12px; overflow:hidden;}
+  .ba .col h4{margin:0; padding:9px 14px; font-size:12px; text-transform:uppercase; letter-spacing:.05em;}
+  .ba .antes h4{background:#f3f4f6; color:var(--muted);}
+  .ba .despues h4{background:var(--indigo-soft); color:var(--indigo);}
+  .ba pre{margin:0; padding:14px; font-size:12px; line-height:1.5; white-space:pre-wrap; word-break:break-word;
+          font-family:'SFMono-Regular',Consolas,monospace; background:var(--card);}
+  .ba .antes pre{color:var(--muted);}
+  .ba .despues pre{color:var(--ink);}
+  .ba-lbl{font-size:13px; font-weight:600; color:var(--indigo); margin:20px 0 4px;}
+  @media (max-width:680px){ .ba{grid-template-columns:1fr;} }
+
+  /* Diagrama de flujo (proceso de venta) */
+  .flow{margin:10px 0 28px;}
+  .flow .step{display:flex; gap:16px; padding:0 0 20px; position:relative;}
+  .flow .step:not(:last-child)::before{content:""; position:absolute; left:17px; top:38px; bottom:-2px; width:2px; background:var(--line);}
+  .flow .num{flex:none; width:36px; height:36px; border-radius:50%; background:var(--indigo); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:15px; z-index:1;}
+  .flow .step.win .num{background:var(--green);}
+  .flow .step.future .num{background:#c4c8e0;}
+  .flow .box{flex:1; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px 16px;}
+  .flow .box h4{margin:0 0 4px; font-size:15px; font-weight:600; color:var(--ink);}
+  .flow .box p{margin:0; font-size:13.5px; color:var(--muted);}
+  .flow .tags{margin-top:9px; display:flex; flex-wrap:wrap; gap:6px;}
+  .flow .tag{font-size:11.5px; font-weight:600; padding:2px 9px; border-radius:999px; background:var(--indigo-soft); color:var(--indigo);}
+  .flow .tag.auto{background:#e6f5ec; color:var(--green);}
+  .flow .tag.man{background:var(--amber-soft); color:var(--amber);}
+  .flow .tag.soon{background:#f3f4f6; color:var(--muted);}
 </style>
 </head>
 <body>
@@ -120,7 +149,7 @@
   <div class="badge">CarbonBox CRM · Guía interna</div>
   <h1>El Funnel de Ventas y sus Automatizaciones</h1>
   <p>Cómo fluye un cliente desde que llega hasta que renueva, y todo lo que el CRM hace solo en el camino.</p>
-  <div class="meta">Actualizado: 6 de julio de 2026 · CRM propio basado en Twenty</div>
+  <div class="meta">Actualizado: 14 de julio de 2026 · CRM propio basado en Twenty</div>
 </header>
 
 <div class="wrap">
@@ -132,6 +161,7 @@
       <li><a href="#slas">Los SLAs (tiempos de respuesta)</a></li>
       <li><a href="#workflows">Automatizaciones por evento</a></li>
       <li><a href="#crons">Los vigilantes automáticos</a></li>
+      <li><a href="#alertas">Las alertas: cuándo salen y qué dicen</a></li>
       <li><a href="#puente">Del formulario web al CRM</a></li>
       <li><a href="#campos">Campos personalizados</a></li>
       <li><a href="#operacion">Notas de operación</a></li>
@@ -141,13 +171,82 @@
   <!-- 1. PIPELINE -->
   <section id="pipeline">
     <h2 class="sec"><span class="n">1</span>El pipeline: las 10 etapas</h2>
-    <p class="lead">Cada oportunidad de venta avanza por estas etapas. Las primeras seis son el camino activo; las últimas cuatro son estados de cierre o espera.</p>
+    <p class="lead">Así fluye un cliente desde que llega hasta que se cierra el negocio, y qué hace el CRM solo en cada paso. 🤖 = automático · 🧑 = lo hace Viviana.</p>
+
+    <div class="flow">
+      <div class="step">
+        <div class="num">1</div>
+        <div class="box">
+          <h4>Lead capturado</h4>
+          <p>Alguien llena el formulario en carbonbox.app (o se da de alta a mano). Se crean Empresa + Contacto + Oportunidad en el CRM.</p>
+          <div class="tags"><span class="tag auto">🤖 Automático · cada 5 min</span></div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="num">2</div>
+        <div class="box">
+          <h4>Bienvenida e invitación a la llamada</h4>
+          <p>Un correo automático de bienvenida invita al cliente a <b>agendar una llamada</b> (con un botón al calendario). En paralelo, se crea la tarea de primer contacto. Si el lead <b>no agenda</b>, a los días 3 y 6 se le recuerda (con tu confirmación) y se te crea una tarea; al día 9 sin agendar pasa a Nurturing.</p>
+          <div class="tags"><span class="tag auto">🤖 Correo de bienvenida</span><span class="tag">📌 Tarea: primer contacto</span><span class="tag soon">🗓️ Recordatorio si no agenda (próximamente)</span></div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="num">3</div>
+        <div class="box">
+          <h4>Llamada virtual de presentación</h4>
+          <p>La reunión donde se <b>presenta CarbonBox</b> y se identifican los <b>dolores</b> del cliente. Queda el <b>transcript</b> de la llamada, que se guarda por empresa y se enlaza a la oportunidad.</p>
+          <div class="tags"><span class="tag man">🧑 La hace Viviana</span><span class="tag auto">🤖 Transcript → CRM</span></div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="num">4</div>
+        <div class="box">
+          <h4>Calificación BANT y cotización</h4>
+          <p>Con lo que se habló en la llamada (el transcript) se evalúa el <b>BANT</b> —presupuesto, decisor, necesidad, plazo— y se arma la <b>cotización</b>.</p>
+          <div class="tags"><span class="tag man">🧑 Manual</span><span class="tag">📄 Insumo: el transcript</span></div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="num">5</div>
+        <div class="box">
+          <h4>Propuesta enviada</h4>
+          <p>Se envía la cotización. El CRM crea tareas de seguimiento (a los 3 y 14 días). Si el negocio se queda quieto, el Revisor de seguimientos lo avisa.</p>
+          <div class="tags"><span class="tag auto">🤖 Seguimientos 3 y 14 días</span><span class="tag soon">✉️ Correo de seguimiento (próximamente)</span></div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="num">6</div>
+        <div class="box">
+          <h4>Negociación</h4>
+          <p>Ajuste de precio y condiciones. Si se estanca, aparece en el reporte semanal, donde podrás autorizar un correo recordatorio con un clic.</p>
+          <div class="tags"><span class="tag">🔔 Alerta si se estanca</span><span class="tag soon">✉️ Correo de seguimiento (próximamente)</span></div>
+        </div>
+      </div>
+      <div class="step win">
+        <div class="num">✓</div>
+        <div class="box">
+          <h4>Cierre ganado → y renovación</h4>
+          <p>¡Cliente! Se disparan tareas de kick-off y activación. Como el contrato es anual, un año después se avisa la renovación en los hitos −90 / −60 / −30 días.</p>
+          <div class="tags"><span class="tag auto">🤖 Kick-off + activación</span><span class="tag auto">🔄 Aviso de renovación</span></div>
+        </div>
+      </div>
+      <div class="step future">
+        <div class="num">*</div>
+        <div class="box">
+          <h4>Demo / Piloto 45d <span style="font-weight:500; color:var(--muted); font-size:13px;">— a futuro</span></h4>
+          <p>Demostración de producto y prueba piloto de 45 días. Pensadas para el pipeline internacional; <b>hoy no están activas</b> porque aún no se ofrecen demos ni pilotos.</p>
+          <div class="tags"><span class="tag soon">⏳ Aún no aplica</span></div>
+        </div>
+      </div>
+    </div>
+
+    <p class="lead">Y estas son las 10 etapas del pipeline en detalle:</p>
 
     <div class="pipe">
       <div class="stg"><span class="d"></span>1 · Lead capturado</div>
       <div class="stg"><span class="d"></span>2 · Calificación BANT</div>
-      <div class="stg"><span class="d"></span>3 · Demo</div>
-      <div class="stg"><span class="d"></span>4 · Piloto 45d</div>
+      <div class="stg side"><span class="d"></span>3 · Demo *</div>
+      <div class="stg side"><span class="d"></span>4 · Piloto 45d *</div>
       <div class="stg"><span class="d"></span>5 · Propuesta enviada</div>
       <div class="stg"><span class="d"></span>6 · En negociación</div>
       <div class="stg win"><span class="d"></span>✓ Cerrado ganado</div>
@@ -161,8 +260,8 @@
         <tr><th>Etapa</th><th>Qué significa</th></tr>
         <tr><td><span class="stage">Lead capturado</span></td><td>Entró un contacto nuevo (formulario web, alta manual o importación). Aún sin calificar.</td></tr>
         <tr><td><span class="stage">Calificación BANT</span></td><td>Se evalúa si es un buen prospecto: <b>B</b>udget (presupuesto), <b>A</b>uthority (decisor), <b>N</b>eed (necesidad), <b>T</b>imeline (plazo).</td></tr>
-        <tr><td><span class="stage">Demo</span></td><td>Demostración de la plataforma agendada o realizada.</td></tr>
-        <tr><td><span class="stage">Piloto 45d</span></td><td>Prueba piloto de 45 días (pensada para el pipeline internacional).</td></tr>
+        <tr><td><span class="stage" style="color:var(--muted)">Demo *</span></td><td>Demostración de la plataforma agendada o realizada. <b>* A futuro:</b> hoy no se ofrecen demos, la etapa no está activa.</td></tr>
+        <tr><td><span class="stage" style="color:var(--muted)">Piloto 45d *</span></td><td>Prueba piloto de 45 días (pensada para el pipeline internacional). <b>* A futuro:</b> aún no aplica.</td></tr>
         <tr><td><span class="stage">Propuesta enviada</span></td><td>Se envió la propuesta comercial. Arranca la secuencia de seguimiento.</td></tr>
         <tr><td><span class="stage">En negociación</span></td><td>Ajuste de términos, precio y condiciones antes del cierre.</td></tr>
         <tr><td><span class="stage" style="color:var(--green)">Cerrado ganado</span></td><td>¡Cliente! Se disparan tareas de kick-off y activación, y entra a la ruta de renovación.</td></tr>
@@ -176,7 +275,7 @@
   <!-- 2. SLAs -->
   <section id="slas">
     <h2 class="sec"><span class="n">2</span>Los SLAs (tiempos de respuesta)</h2>
-    <p class="lead"><b>SLA</b> viene de <i>Service Level Agreement</i> («acuerdo de nivel de servicio»): es el tiempo máximo que una oportunidad debería permanecer en una etapa sin avanzar. Si se pasa, el CRM crea una tarea urgente automáticamente (ver el Vigía SLA más abajo).</p>
+    <p class="lead"><b>SLA</b> viene de <i>Service Level Agreement</i> («acuerdo de nivel de servicio»): es el tiempo máximo que una oportunidad debería permanecer en una etapa sin avanzar. Si se pasa, el CRM crea una tarea urgente automáticamente (ver el Revisor de seguimientos más abajo).</p>
     <div class="note"><b>BANT</b>, que aparece como una de las etapas, es el método para calificar un prospecto por cuatro criterios: <b>B</b>udget (presupuesto), <b>A</b>uthority (quién decide la compra), <b>N</b>eed (necesidad real) y <b>T</b>imeline (plazo en que compraría).</div>
 
     <div class="card" style="padding:0;">
@@ -184,7 +283,7 @@
         <tr><th>Etapa</th><th>SLA</th><th>Si se vence…</th></tr>
         <tr><td><span class="stage">Lead capturado</span></td><td><span class="sla">60 minutos</span></td><td>Contactar YA por email o llamada — un lead se enfría rápido.</td></tr>
         <tr><td><span class="stage">Calificación BANT</span></td><td><span class="sla">72 horas</span></td><td>Último intento de contacto; si no responde, pasar a Nurturing.</td></tr>
-        <tr><td><span class="stage">Demo</span></td><td><span class="sla">7 días</span></td><td>Reagendar en 24h o mover a Nurturing si cancela dos veces.</td></tr>
+        <tr><td><span class="stage" style="color:var(--muted)">Demo *</span></td><td><span class="sla none">a futuro</span></td><td>* Etapa aún no activa (no se ofrecen demos hoy). Cuando aplique: reagendar en 24h o mover a Nurturing si cancela dos veces.</td></tr>
         <tr><td><span class="stage">Propuesta enviada</span></td><td><span class="sla">7 días</span></td><td>Llamar: «¿Tuvo oportunidad de revisar la propuesta?».</td></tr>
         <tr><td><span class="stage">En negociación</span></td><td><span class="sla">21 días</span></td><td>Si no responde, pasar a Nurturing mensual y documentar.</td></tr>
         <tr><td><span class="stage" style="color:var(--muted)">Otras etapas</span></td><td><span class="sla none">sin SLA</span></td><td>Piloto, Nurturing, cerradas: no generan alertas de tiempo.</td></tr>
@@ -278,9 +377,18 @@
     <div class="auto cron">
       <div class="ico">🛡️</div>
       <div class="body">
-        <h3>Vigía SLA <span class="pill on">cada 30 min</span></h3>
-        <p class="trg">Revisa todas las oportunidades abiertas y los contratos ganados</p>
-        <p>Dos trabajos en uno: <b>(a)</b> si una oportunidad superó el SLA de su etapa, crea una tarea urgente; <b>(b)</b> si un contrato ganado se acerca a su vencimiento, avisa en los hitos <b>−90 / −60 / −30 días</b> con la acción de cada hito (propuesta anticipada → contrato → llamada de fidelización). Si hay novedades, manda un email de resumen.</p>
+        <h3>Revisor de seguimientos <span class="pill on">cada 3 horas</span></h3>
+        <p class="trg">Revisa las oportunidades abiertas del funnel</p>
+        <p>Si una oportunidad lleva más tiempo del debido en su etapa sin avanzar (pasó su «límite»), crea una <b>tarea urgente</b> para Viviana con la acción a tomar. Si encontró algo nuevo en esa pasada, manda un correo de resumen. <span style="color:var(--muted)">(Antes corría cada 30 min; se bajó a cada 3 h porque no hay tantos negocios como para revisar tan seguido.)</span></p>
+      </div>
+    </div>
+
+    <div class="auto cron">
+      <div class="ico">🔄</div>
+      <div class="body">
+        <h3>Avisos de renovación <span class="pill on">1 vez al día</span></h3>
+        <p class="trg">Revisa los contratos ganados y su fecha de vencimiento</p>
+        <p>Como los contratos son anuales y la fecha de vencimiento ya se conoce, basta un chequeo diario. Avisa en los hitos <b>−90 / −60 / −30 días</b> con la acción de cada uno (propuesta anticipada → contrato → llamada de fidelización), creando una tarea por hito.</p>
       </div>
     </div>
 
@@ -289,7 +397,7 @@
       <div class="body">
         <h3>Reporte semanal <span class="pill on">lunes 8:00 am</span></h3>
         <p class="trg">Cada inicio de semana</p>
-        <p>Envía por correo un resumen del pipeline: cuántas oportunidades hay en cada etapa. Foto rápida del estado comercial.</p>
+        <p>Envía por correo un resumen del pipeline: el conteo y valor por etapa, los leads sin primer contacto y los negocios estancados (con su acción sugerida). Foto rápida del estado comercial. Detalle en la sección «Las alertas».</p>
       </div>
     </div>
 
@@ -301,6 +409,99 @@
         <p>Trae los leads del sitio web al CRM automáticamente (ver la sección siguiente).</p>
       </div>
     </div>
+  </section>
+
+  <!-- 4b. ALERTAS -->
+  <section id="alertas">
+    <h2 class="sec"><span class="n">4b</span>Las alertas: cuándo salen y qué dicen</h2>
+    <p class="lead">Todos los mensajes que el CRM genera solo — tareas y correos. Aquí ves qué dispara cada uno, cada cuánto, por dónde llega y qué contiene. Abajo, cómo se redacta cada alerta.</p>
+
+    <div class="card">
+      <table>
+        <tr><th>Alerta</th><th>Qué la dispara</th><th>Cada cuánto</th><th>Por dónde llega</th><th>Qué contiene</th></tr>
+        <tr><td><b>Primer contacto</b></td><td>Se captura un lead nuevo</td><td>Al instante</td><td>Tarea en el CRM (Viviana)</td><td>Recordatorio de contactar en la 1.ª hora.</td></tr>
+        <tr><td><b>Correo de bienvenida</b></td><td>Se crea un contacto</td><td>Al instante</td><td>Email al contacto</td><td>Saludo de bienvenida (plantilla aprobada).</td></tr>
+        <tr><td><b>Recordatorio de agenda</b> <span style="color:var(--muted); font-size:11px;">(próximamente)</span></td><td>Un lead no agendó la llamada (días 3 y 6)</td><td>Revisa cada 3 h</td><td>Tarea + correo con tu confirmación</td><td>Tarea para contactar + enlace para enviar el recordatorio. Al día 9 sin agendar → Nurturing.</td></tr>
+        <tr><td><b>Tarea del Revisor de seguimientos</b></td><td>Una oportunidad pasó el límite de su etapa sin avanzar</td><td>Cada 3 horas</td><td>Tarea urgente en el CRM</td><td>Etapa, días vs. límite y la acción a tomar.</td></tr>
+        <tr><td><b>Correo del Revisor de seguimientos</b></td><td>El Revisor creó tareas nuevas en esa pasada</td><td>Cada 3 horas</td><td>Email a info@carbonbox.app</td><td>Resumen de lo que se estancó y ya tiene tarea.</td></tr>
+        <tr><td><b>Aviso de renovación</b></td><td>Un contrato ganado llega a −90 / −60 / −30 días de vencer</td><td>1 vez al día</td><td>Tarea urgente en el CRM</td><td>El hito y la acción de renovación de ese hito.</td></tr>
+        <tr><td><b>Reporte semanal</b></td><td>Inicio de semana</td><td>Lunes 8:00 am</td><td>Email a info@carbonbox.app</td><td>Conteo/valor por etapa + leads sin contactar + negocios estancados.</td></tr>
+      </table>
+    </div>
+
+    <p class="lead" style="margin-top:26px;">Cómo se ve hoy cada alerta y cómo debería verse. Los montos son de ejemplo.</p>
+
+    <!-- Reporte semanal -->
+    <div class="ba-lbl">1 · Reporte semanal (correo)</div>
+    <div class="ba">
+      <div class="col antes"><h4>Hoy</h4><pre>🔴 HC Organizacional - PC System Colombia — ④ Propuesta Enviada, 159.3 días sin avanzar</pre></div>
+      <div class="col despues"><h4>Propuesto</h4><pre>── NEGOCIOS ESTANCADOS (12) ──
+De la más atrasada a la menos. "Límite" = tiempo
+máximo en esa etapa sin avanzar.
+
+ 1. HC Organizacional · PC System Colombia   $12.500.000
+    Propuesta enviada hace 159 días (límite 7).
+    → Llamar: "¿Alcanzó a revisar la propuesta?"
+      Si no responde, pasar a Nurturing.
+
+Los leads recién capturados van en su propio
+bloque: «LEADS SIN PRIMER CONTACTO».</pre></div>
+    </div>
+
+    <!-- Correo del Revisor de seguimientos -->
+    <div class="ba-lbl">2 · Revisor de seguimientos (correo resumen)</div>
+    <div class="ba">
+      <div class="col antes"><h4>Hoy</h4><pre>El vigía del funnel encontró estos vencimientos y ya creó las tareas en el CRM:
+• PC System Colombia — PROPUESTA_ENVIADA vencido (3816.0h, SLA 7 días)
+Entra a http://localhost:3000 para gestionarlos.</pre></div>
+      <div class="col despues"><h4>Propuesto</h4><pre>El Revisor de seguimientos revisó el pipeline y
+creó tareas urgentes para Viviana:
+
+  • PC System Colombia — Propuesta enviada hace
+    159 días (límite 7). Acción: llamar para
+    confirmar interés.
+
+Las tareas ya están en el CRM, cada una con su
+acción: https://crm.carbonbox.app</pre></div>
+    </div>
+
+    <!-- Tarea del Revisor de seguimientos -->
+    <div class="ba-lbl">3 · Revisor de seguimientos (tarea en el CRM)</div>
+    <div class="ba">
+      <div class="col antes"><h4>Hoy</h4><pre>Título: 🔴 SLA VENCIDO [PROPUESTA_ENVIADA]: PC System Colombia
+Cuerpo: **SLA de la etapa:** 7 días — lleva **3816.0h** sin avanzar.
+**Acción:** Llamar directamente...</pre></div>
+      <div class="col despues"><h4>Propuesto</h4><pre>Título: 🔴 Propuesta sin respuesta — PC System Colombia
+Cuerpo:
+Lleva 159 días en Propuesta enviada — el límite
+de esta etapa es 7 días.
+
+Acción: Llamar: "¿Alcanzó a revisar la propuesta?"
+Si no responde, pasar a Nurturing.</pre></div>
+    </div>
+
+    <!-- Renovación -->
+    <div class="ba-lbl">4 · Renovación (tarea en el CRM)</div>
+    <div class="ba">
+      <div class="col antes"><h4>Hoy</h4><pre>Título: 🔄 RENOVACIÓN -90d: Fundación Santafé</pre></div>
+      <div class="col despues"><h4>Propuesto</h4><pre>Título: 🔄 Renovación en 90 días — Fundación Santafé
+(el cuerpo ya es claro; solo cambia el título)</pre></div>
+    </div>
+
+    <div class="note"><b>Que no se vuelva a desfasar.</b> Los límites de cada etapa y la acción sugerida vivirán en un solo lugar del código (<code>crm_lib.py</code>), y de ahí los toman el Revisor de seguimientos y el Reporte semanal. Así esta guía y los mensajes siempre dicen lo mismo.</div>
+
+    <div class="ba-lbl">5 · Correo de seguimiento con un clic <span style="font-weight:500; color:var(--muted);">— próximamente</span></div>
+    <div class="card">
+      <p style="margin:0 0 10px;">Para los negocios estancados (propuesta o negociación sin respuesta), el <b>reporte semanal</b> traerá un enlace <b>«Enviar recordatorio»</b> junto a cada uno. Así funcionará:</p>
+      <table>
+        <tr><th style="width:34px">#</th><th>Paso</th></tr>
+        <tr><td>1</td><td>En el reporte, haces clic en <b>«Enviar recordatorio»</b> junto al negocio.</td></tr>
+        <tr><td>2</td><td>Se abre una <b>página de confirmación</b> con el correo ya redactado (plantilla según la etapa: propuesta, negociación…) y el nombre del cliente.</td></tr>
+        <tr><td>3</td><td>Revisas y presionas <b>«Confirmar y enviar»</b>. Solo ahí sale el correo, y queda registrado en la oportunidad.</td></tr>
+      </table>
+      <div class="note warn" style="margin-bottom:0;"><b>Regla de oro respetada.</b> El correo nunca se envía solo: siempre pasa por tu confirmación. El clic en el reporte solo <i>abre</i> la propuesta de correo, no la envía.</div>
+    </div>
+
   </section>
 
   <!-- 5. PUENTE -->
@@ -358,7 +559,7 @@
     <h2 class="sec"><span class="n">7</span>Notas de operación</h2>
 
     <div class="note">
-      <b>Dónde vive.</b> El CRM corre en tu PC (dentro de WSL2 + Docker), accesible en <code>http://localhost:3000</code>. Los contenedores se reinician solos tras reiniciar el equipo.
+      <b>Dónde vive.</b> El CRM corre en el servidor (VPS Hostinger), en producción en <code>https://crm.carbonbox.app</code>. Los servicios se reinician solos tras un reinicio del servidor.
     </div>
     <div class="note">
       <b>Los correos</b> salen desde la cuenta de Google Workspace, con remitente <code>viviana.bohorquez@carbonbox.app</code>.
