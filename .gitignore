@@ -49,3 +49,6 @@ node_modules/
 
 # Transcripciones de llamadas con clientes: son datos de cliente, no insumos versionables
 tools/cotizar/Insumos/*.docx
+
+# Estado efímero de sesiones de trabajo
+.superpowers/
