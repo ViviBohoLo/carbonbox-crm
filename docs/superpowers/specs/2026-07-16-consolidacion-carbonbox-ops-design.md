@@ -3,34 +3,36 @@
 **Fecha:** 2026-07-16
 **Estado:** Diseño aprobado, pendiente de plan de implementación
 
+> **Nota de revisión (2026-07-16):** la primera versión de este spec se escribió sin consultar el remoto de GitHub y partía de tres premisas falsas: que el código del 14-jul no estaba versionado, que había drift bidireccional entre las dos carpetas del CRM, y que fusionarlas era un paso delicado. Ninguna resultó cierta. Ver "Corrección de premisas" al final.
+
 ## Problema
 
-El trabajo de CarbonBox está repartido en cuatro carpetas locales. Ninguna de ellas es autoritativa por sí sola, y dos de ellas contienen trabajo real sin ningún respaldo.
+El trabajo de CarbonBox está repartido en cuatro carpetas locales, y el agente no tiene forma de saber cuál compartir.
 
-| Carpeta | Git | Último cambio | Contenido |
+| Carpeta | Git | Estado real | Contenido |
 |---|---|---|---|
-| `CRM CarbonBox` | ❌ No | 2026-07-14 | Scripts del VPS (webinars, Fases 2/3), planes, specs, branding |
-| `carbonbox-crm` | ✅ Sí | 2026-07-07 | Repo formal de ops: deploy, rebrand, scripts, README |
-| `Cobros CMR CarbonBox` | ❌ No | 2026-07-09 | SOP de cobros Helisa → Twenty (solo documentos) |
-| `Automatización de cotizaciones CarbonBox` | ❌ No | 2026-07-16 | Generador de decks de cotización (Node + Python) |
+| `CRM CarbonBox` | ❌ No | Espejo obsoleto — **sin código propio** | Copia vieja de los scripts + datos sueltos |
+| `carbonbox-crm` | ✅ Sí | **Autoritativa y al día** (tras sincronizar) | Repo de ops completo |
+| `Cobros CMR CarbonBox` | ❌ No | Solo documentos | SOP de cobros Helisa → Twenty |
+| `Automatización de cotizaciones CarbonBox` | ❌ No | **Activa y sin respaldo** | Generador de decks (Node + Python) |
 
 ### Causa raíz
 
-`CRM CarbonBox` y `carbonbox-crm` son el mismo proyecto duplicado. Se separaron porque **la documentación de cada carpeta señala a la otra como la carpeta de desarrollo**:
+El flujo de trabajo es conversacional: la usuaria comparte una carpeta con el agente y describe el cambio. El agente lee los docs de esa carpeta para saber dónde trabajar. **La documentación de cada carpeta señala a la otra como la carpeta de desarrollo:**
 
 - `CRM CarbonBox/docs/.../2026-07-14-fase2-alertas-scripts.md:13` — "En el repo GitHub `ViviBohoLo/carbonbox-crm` viven bajo `crm-scripts/` — commitear ahí y desplegar al VPS"
 - `carbonbox-crm/docs/.../2026-07-06-form-intake-webhook.md:18` — "Se desarrollan en el espejo local `CRM CarbonBox/vps/crm-scripts/`"
 
-El flujo de trabajo es conversacional: la usuaria comparte una carpeta con el agente y describe el cambio. El agente lee los docs de esa carpeta para saber dónde trabajar. Como los docs se contradicen, el agente trabajó en una u otra según cuál se le compartiera. **El drift lo causó la documentación, no un error de operación.**
+En palabras de la usuaria: *"cuando le dije que revisara la carpeta del cmr, no supe cuál compartirle."*
 
-Consecuencia directa, en palabras de la usuaria: *"cuando le dije que revisara la carpeta del cmr, no supe cuál compartirle."*
+El daño real no fue pérdida de trabajo — el trabajo se commiteó correctamente a GitHub. Fue **una carpeta local que se quedó atrás sin que nadie lo notara**, y la ilusión resultante de que había trabajo sin respaldo. Cuatro carpetas para un solo proyecto obligan a tomar una decisión que nadie puede tomar bien.
 
-### Riesgos concretos
+### Riesgos concretos, en orden
 
-1. **Sin respaldo:** el código desplegado en el VPS (14-jul: webinars, seguimiento, Fases 2/3) existe únicamente en un disco local y en el servidor. Sin historial ni remoto.
-2. **Sin respaldo:** 73 MB de cotizaciones reales (PepsiCo, WOM, Imprenta Nacional, Hotel Waya) sin versionar.
-3. **Credenciales en claro:** `Cobros CMR CarbonBox/terminal Helisa.txt` contiene usuarios y contraseñas del portal Helisa Cloud en texto plano.
-4. **Drift bidireccional:** ninguna de las dos carpetas del CRM es superconjunto de la otra.
+1. **`Automatización de cotizaciones` no tiene git.** 73 MB con las cotizaciones reales de PepsiCo, WOM, Imprenta Nacional y Hotel Waya, más los generadores y los Insumos. Sin historial ni remoto. **Es el único trabajo realmente sin respaldo, y es la carpeta más activa (tocada hoy).**
+2. **Credenciales en claro:** `Cobros CMR CarbonBox/terminal Helisa.txt` contiene dos juegos de usuario/contraseña del portal Helisa Cloud en texto plano.
+3. **Carpetas locales que se quedan atrás en silencio.** `carbonbox-crm` llevaba 2 commits de retraso; nada avisó.
+4. **Ambigüedad para el agente.** Sin fuente única de verdad, cada sesión puede elegir distinto.
 
 ## Objetivo
 
@@ -58,19 +60,22 @@ De cuatro carpetas a una.
 ### Decisiones y justificación
 
 **El repo base es `carbonbox-crm`, renombrado a `carbonbox-ops`.**
-Sobrevive esta carpeta porque ya tiene git, remoto configurado (`ViviBohoLo/carbonbox-crm`) y un `.gitignore` que bloquea secretos. Se renombra porque el nombre se queda corto: adentro habrá cotizaciones y cobros, que no son CRM. `ops` describe lo que realmente es — la operación de CarbonBox. El renombrado aplica en local y en GitHub.
+Ya tiene git, remoto (`ViviBohoLo/carbonbox-crm`), un `.gitignore` que bloquea secretos, y — verificado — **es superconjunto de `CRM CarbonBox` en todo el código**. Se renombra porque el nombre se queda corto: adentro habrá cotizaciones y cobros, que no son CRM. `ops` describe lo que es: la operación de CarbonBox. El renombrado aplica en local y en GitHub.
 
 **Cotizar entra como `tools/cotizar/`, no como repo aparte.**
-Hoy ese proyecto tiene acoplamiento cero con el CRM: entra Markdown, sale un `.pptx`, sin red. Pero la Etapa 1 de su propio plan (`2026-07-06-cotizar-etapa1.md`) requiere leer una oportunidad de Twenty vía GraphQL — algo que `crm-scripts/crm_lib.py` ya sabe hacer, y que el spec de cotizar reconoce explícitamente ("mismo patrón y token del proyecto CRM"). En repos separados habría que duplicar `crm_lib.py`, reproduciendo exactamente la enfermedad que esta consolidación cura.
+Hoy tiene acoplamiento cero con el CRM: entra Markdown, sale un `.pptx`, sin red. Pero la Etapa 1 de su propio plan (`2026-07-06-cotizar-etapa1.md`) requiere leer una oportunidad de Twenty vía GraphQL — algo que `crm-scripts/crm_lib.py` ya sabe hacer, y que el spec de cotizar reconoce explícitamente ("mismo patrón y token del proyecto CRM"). En repos separados habría que duplicar `crm_lib.py`, reproduciendo la enfermedad que esta consolidación cura.
 
 **Cobros entra como `cobros/`.**
-Son cinco archivos de texto que describen escrituras al mismo Twenty que administra el resto del repo. Un repo propio sería ceremonia sin beneficio.
+Cinco archivos de texto que describen escrituras al mismo Twenty que administra el resto del repo. Un repo propio sería ceremonia sin beneficio.
 
 **El `CLAUDE.md` es la pieza que impide la recaída.**
-Debe declarar sin ambigüedad: dónde vive el código, cómo llega al VPS, qué se versiona y qué no. Los planes y specs existentes pasan a `docs/` como registro histórico — **son ellos los que hoy se contradicen**, y deben dejar de leerse como instrucciones vigentes.
+Debe declarar sin ambigüedad: dónde vive el código, cómo llega al VPS, **cómo se sincroniza con GitHub antes de empezar a trabajar** (el fallo que causó el desfase), y qué se versiona y qué no. Los planes y specs existentes pasan a `docs/` como registro histórico — **son ellos los que se contradicen**, y deben dejar de leerse como instrucciones vigentes.
 
 **Los binarios quedan fuera de git, no fuera del disco.**
-`Cotizaciones/`, `Recursos/` y `Logos/` (≈70 MB de PPTX y PNG, de crecimiento ilimitado) permanecen en la carpeta local pero se excluyen vía `.gitignore`. El spec de cotizar ya contempla Drive como destino de los decks. Se versiona el código, `Insumos/`, `docs/`, `branding/` y el sistema de diseño: pocos MB, y es lo irreemplazable.
+`Cotizaciones/`, `Recursos/` y `Logos/` (≈70 MB de PPTX y PNG, crecimiento ilimitado) permanecen en la carpeta local, excluidos vía `.gitignore`. El spec de cotizar ya contempla Drive como destino de los decks. Se versiona el código, `Insumos/`, `docs/`, `branding/` y el sistema de diseño: pocos MB, y es lo irreemplazable.
+
+**Los datos de clientes no entran a git.**
+El README del repo declara: "no contiene datos de clientes ni secretos". `CRM CarbonBox/Archivos Hubspot/` (2 CSV export de HubSpot, 2.3 MB de contactos y empresas) y `transcripción video de youtube.docx` respetan esa línea: se conservan en disco o en Drive, fuera del repo.
 
 ### Alternativas descartadas
 
@@ -89,66 +94,75 @@ El orden es parte del diseño: hay pasos irreversibles.
 
 ### 1. Copia de seguridad
 
-Copiar las cuatro carpetas completas a un destino externo antes de mover un solo archivo. Red de seguridad para todo lo que sigue.
+Copiar las cuatro carpetas completas a un destino externo antes de mover un solo archivo.
 
-### 2. Renombrar el repo
+### 2. Poner cotizar a salvo — PRIORIDAD
+
+Es el único trabajo sin respaldo. Entra al repo como `tools/cotizar/` con su `.gitignore` configurado antes del primer commit, para que los 70 MB de binarios nunca entren al historial. Arreglar `package.json` (hoy sin `name` ni `scripts`).
+
+Se hace temprano y no al final: cada día que pasa es un día de exposición.
+
+### 3. Renombrar el repo
 
 `carbonbox-crm` → `carbonbox-ops`, en local y en GitHub. Actualizar el remoto.
 
-### 3. Fusionar los scripts del CRM — paso delicado
+### 4. Verificar el repo contra el VPS
 
-Siete archivos divergieron en ambos sentidos:
+El repo es autoritativo frente a `CRM CarbonBox` — verificado por diff. Falta confirmar que **coincide con lo que realmente corre en el VPS** (`72.60.125.170:/root/crm-scripts/`). Es una comprobación, no una fusión: si hay diferencia, se investiga antes de tocar nada.
 
-| Archivo | `CRM CarbonBox` (07-14) | `carbonbox-crm` (07-07) |
-|---|---|---|
-| `crm_lib.py` | 12.1 KB | 6.0 KB |
-| `intake_server.py` | 8.6 KB | 4.2 KB |
-| `vigia_sla.py` | 7.2 KB | 4.1 KB |
-| `calendar_transcripts.py` | 10.1 KB | 9.2 KB |
-| `reporte_semanal.py` | 3.4 KB | 2.6 KB |
-| `hubspot_bridge.py` | divergente | divergente |
-| `cron/carbonbox-crm` | 1.0 KB | 0.8 KB |
+Correr los tests (`python3 -m unittest`) como línea base.
 
-Solo en `CRM CarbonBox`: `seguimiento.py`, `webinar_intake.py`, `webinar_lib.py`, `webinar_post.py`, `webinar_recordatorios.py`, tests asociados, 6 planes y 4 specs.
+### 5. Retirar `CRM CarbonBox`
 
-Solo en `carbonbox-crm`: `gtasks_sync.py`, `hs_peek.py`, tests asociados, `deploy/`, `rebrand/`, `scripts-ops/`.
+No tiene código propio. Antes de archivarla, rescatar lo único que no está en el repo y decidir su destino **fuera de git** (son datos de clientes):
+- `Archivos Hubspot/` — 2 CSV export de HubSpot (2.3 MB)
+- `transcripción video de youtube.docx` (184 KB)
 
-**Criterio de resolución:** las versiones del 14-jul son las candidatas ganadoras porque son las desplegadas en el VPS — pero **se verifica contra el VPS (`72.60.125.170:/root/crm-scripts/`) antes de decidir, archivo por archivo.** El servidor tiene la última palabra sobre qué está en producción. No se asume.
+Descartar: `.playwright-mcp/` (snapshots de depuración del 06-jul), `__pycache__/`, `nul` (artefacto de un `> nul` en shell POSIX; rompe herramientas que recorren el árbol).
 
-Al terminar: correr los tests (`python3 -m unittest`) antes de commitear.
+### 6. Incorporar cobros
 
-### 4. Incorporar cotizar y cobros
+Mudanza directa, una vez hecho el paso 0.
 
-Mudanza directa: hoy ninguno de los dos habla con el CRM. Configurar `.gitignore` para excluir `tools/cotizar/Cotizaciones/`, `tools/cotizar/Recursos/` y `tools/cotizar/Logos/`. Arreglar `package.json` de cotizar (hoy sin `name` ni `scripts`).
+### 7. Escribir el `CLAUDE.md` y subir a GitHub
 
-### 5. Escribir el `CLAUDE.md` y subir a GitHub
+Debe incluir la regla de sincronizar antes de trabajar. Commitear también `.superpowers/` o excluirlo explícitamente (hoy está sin trackear).
 
-### 6. Marcar las carpetas viejas, no borrarlas
+### 8. Marcar las carpetas viejas, no borrarlas
 
 Renombrar con prefijo `_VIEJO_`. Permanecen hasta que la usuaria confirme que todo funciona. **El borrado es decisión suya, no de la migración.**
 
-### 7. Limpieza
-
-- `CRM CarbonBox/nul` — artefacto de un `> nul` en shell POSIX; rompe herramientas que recorren el árbol.
-- `__pycache__/` en `CRM CarbonBox`.
-- `.playwright-mcp/` — snapshots de una sesión de depuración del 06-jul.
-- `Cotizaciones/Imprenta Nacional de Colombia/lu536y5c0.tmp` y `.~lock....pdf#` — temporales de LibreOffice.
+Limpieza menor: `Cotizaciones/Imprenta Nacional de Colombia/lu536y5c0.tmp` y `.~lock....pdf#` — temporales de LibreOffice.
 
 ## Criterios de éxito
 
 1. Existe una sola carpeta `carbonbox-ops`, respaldada en GitHub.
-2. El código del 14-jul está versionado y coincide con lo desplegado en el VPS.
-3. Los tests pasan.
-4. `terminal Helisa.txt` no existe en disco ni en el historial de git.
-5. `CLAUDE.md` responde sin ambigüedad dónde va el código y cómo se despliega.
-6. Ningún doc vigente contradice a otro sobre la carpeta de desarrollo.
-7. El repo no contiene binarios de crecimiento ilimitado.
-8. Las carpetas viejas siguen en disco, marcadas.
+2. El código de cotizar está versionado; sus 70 MB de binarios no.
+3. El repo coincide con lo desplegado en el VPS.
+4. Los tests pasan.
+5. `terminal Helisa.txt` no existe en disco ni en el historial de git.
+6. `CLAUDE.md` responde sin ambigüedad dónde va el código, cómo se despliega y cómo sincronizar.
+7. Ningún doc vigente contradice a otro sobre la carpeta de desarrollo.
+8. El repo no contiene datos de clientes ni binarios de crecimiento ilimitado.
+9. Las carpetas viejas siguen en disco, marcadas.
 
 ## Fuera de alcance
 
 **Conectar `/cotizar` con el CRM.** Es el siguiente proyecto y ya tiene plan escrito (`2026-07-06-cotizar-etapa1.md`, 8 tareas, ninguna ejecutada).
 
-Al retomarlo, tener presente: hoy el patrón es **duplicar un generador de ~26 KB por cliente** (existen 3 copias con ~90% de código idéntico). El plan del 6-jul ya propone separar contenido (`contenido.yml`) de render (`render.js`). El skill `/cotizar` es la tarea 8 de ese plan, no la primera: montarlo sobre el patrón de copy-paste automatizaría el desorden en vez de resolverlo.
+Al retomarlo, tener presente: hoy el patrón es **duplicar un generador de ~26 KB por cliente** (3 copias con ~90% de código idéntico). El plan del 6-jul ya propone separar contenido (`contenido.yml`) de render (`render.js`). El skill `/cotizar` es la tarea 8 de ese plan, no la primera: montarlo sobre el patrón de copy-paste automatizaría el desorden en vez de resolverlo.
 
 **Renombrar "CMR" → "CRM"** en artefactos externos (carpeta de Drive). La transposición está fosilizada en nombres reales fuera de este repo.
+
+## Corrección de premisas
+
+Registro de lo que la primera versión de este spec afirmaba y la verificación contra GitHub desmintió. Se conserva porque el error es instructivo: **se diagnosticó el estado de un repo mirando solo la copia local.**
+
+| Premisa original | Realidad verificada |
+|---|---|
+| El código del 14-jul (webinars, Fases 2/3) existe solo en un disco y en el VPS | Está en GitHub desde el 14-jul: commits `8033521` y `e542f40`, 5.091 líneas, autor "CarbonBox Ops" |
+| Siete archivos con drift bidireccional; ninguna carpeta es superconjunto | Tras sincronizar, `carbonbox-crm` es superconjunto en **todo** el código. `CRM CarbonBox` no aporta un solo archivo propio |
+| Las versiones del 14-jul en `CRM CarbonBox` deberían ganar | Pierden todas. En los dos archivos que diferían (`hubspot_bridge.py`, `test_lead_intake.py`) el repo tiene la versión posterior y más completa; el cron del repo incluye las líneas de webinars que faltan en la copia |
+| Fusionar los scripts es el paso delicado de la migración | No hay nada que fusionar. `CRM CarbonBox` se archiva tras rescatar dos artefactos que no son código |
+
+Lo que causó el error: `carbonbox-crm` local llevaba 2 commits de retraso y se leyó su fecha (07-jul) como el estado del proyecto. Un `git fetch` al inicio lo habría evitado — de ahí que el `CLAUDE.md` deba exigir sincronizar antes de trabajar.
