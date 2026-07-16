@@ -61,3 +61,16 @@ tools/cotizar/Insumos/*.docx
 
 # Estado efímero de sesiones de trabajo
 .superpowers/
+
+# === Secretos con nombres "sueltos" ===
+# El bloque de arriba cubre *.token / *.key / .twenty_api_token, pero NO un
+# archivo llamado "token crm.txt". Pasó el 16-jul: una sesión guardó el token
+# de la API de Twenty en un .txt dentro de la carpeta de cotizar.
+# Los tokens NO viven en el repo: van a un gestor de contraseñas, o a
+# ~/.carbonbox/ fuera del árbol. En el VPS: /root/.twenty_api_token
+*token*.txt
+*token*.json
+*credencial*
+*password*
+*contrasen*
+*contraseñ*
