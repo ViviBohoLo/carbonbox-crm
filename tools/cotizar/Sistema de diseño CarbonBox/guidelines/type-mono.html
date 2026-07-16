@@ -1,0 +1,29 @@
+<!-- @dsCard group="Type" viewport="700x150" name="Datos & cifras — JetBrains Mono" subtitle="Numerales tabulares para KPIs, ejes y etiquetas" -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin: 0; background: var(--surface-card); font-family: var(--font-mono); }
+  .wrap { padding: 24px 28px; display: flex; align-items: center; gap: 40px; }
+  .big { font-family: var(--font-display); font-size: 46px; font-weight: 700; color: var(--primary); letter-spacing: -0.03em; font-variant-numeric: tabular-nums; line-height: 1; }
+  .unit { font-family: var(--font-body); font-size: 15px; color: var(--ink-3); font-weight: 500; }
+  table { border-collapse: collapse; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+  td { padding: 5px 14px 5px 0; font-size: 13px; color: var(--ink-2); }
+  td.k { color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.06em; font-size: 11px; }
+  td.v { font-weight: 600; color: var(--primary); text-align: right; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div><span class="big">49,050<span class="unit"> tCO₂e</span></span></div>
+    <table>
+      <tr><td class="k">Energía</td><td class="v">42%</td></tr>
+      <tr><td class="k">Transporte</td><td class="v">28%</td></tr>
+      <tr><td class="k">Procesos</td><td class="v">18%</td></tr>
+      <tr><td class="k">Residuos</td><td class="v">12%</td></tr>
+    </table>
+  </div>
+</body>
+</html>

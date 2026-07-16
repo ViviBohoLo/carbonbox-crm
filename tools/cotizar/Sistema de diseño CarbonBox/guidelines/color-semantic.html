@@ -1,0 +1,26 @@
+<!-- @dsCard group="Colors" viewport="700x150" name="Semánticos" subtitle="Success, warning, danger, info — sólido + tinte suave" -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin: 0; background: var(--surface-card); font-family: var(--font-body); }
+  .wrap { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; padding: 22px 24px; }
+  .col { display: flex; flex-direction: column; gap: 8px; }
+  .pair { display: flex; gap: 6px; }
+  .solid { flex: 1.4; height: 52px; border-radius: 8px; display: flex; align-items: flex-end; padding: 8px; box-sizing: border-box; }
+  .soft { flex: 1; height: 52px; border-radius: 8px; }
+  .lab { font-size: 12px; font-weight: 700; color: var(--primary); }
+  .hex { font-size: 10px; font-family: var(--font-mono); color: #fff; font-weight: 600; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="col"><div class="pair"><div class="solid" style="background:var(--success)"><span class="hex">#2F6B4A</span></div><div class="soft" style="background:var(--success-soft)"></div></div><span class="lab">Success</span></div>
+    <div class="col"><div class="pair"><div class="solid" style="background:var(--warning)"><span class="hex">#B9772A</span></div><div class="soft" style="background:var(--warning-soft)"></div></div><span class="lab">Warning</span></div>
+    <div class="col"><div class="pair"><div class="solid" style="background:var(--danger)"><span class="hex">#C0453F</span></div><div class="soft" style="background:var(--danger-soft)"></div></div><span class="lab">Danger</span></div>
+    <div class="col"><div class="pair"><div class="solid" style="background:var(--info)"><span class="hex">#1620A4</span></div><div class="soft" style="background:var(--info-soft)"></div></div><span class="lab">Info</span></div>
+  </div>
+</body>
+</html>

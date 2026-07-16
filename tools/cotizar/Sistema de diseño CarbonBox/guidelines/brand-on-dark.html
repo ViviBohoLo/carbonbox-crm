@@ -1,0 +1,32 @@
+<!-- @dsCard group="Brand" viewport="700x190" name="Sobre fondo oscuro" subtitle="Lockup blanco + menta sobre #0d1230 / navy — superficie inversa" -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<script crossorigin src="https://unpkg.com/react@18.3.1/umd/react.development.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js"></script>
+<script src="../_ds_bundle.js"></script>
+<style>
+  body { margin: 0; font-family: var(--font-body); }
+  #root { display: grid; grid-template-columns: 1.5fr 1fr; height: 190px; }
+  .panel { display: flex; align-items: center; justify-content: center; gap: 22px; position: relative; }
+  .dark { background: var(--surface-dark); }
+  .navy { background: var(--primary); flex-direction: column; gap: 12px; }
+  .lab { position: absolute; bottom: 12px; left: 16px; font-size: 10px; color: rgba(255,255,255,0.5); font-family: var(--font-mono); }
+</style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { Logo, HexMark } = window.DesignSystem_515ed5;
+    ReactDOM.createRoot(document.getElementById('root')).render(
+      <React.Fragment>
+        <div className="panel dark"><Logo size={34} inverted /><span className="lab">--surface-dark · #0D1230</span></div>
+        <div className="panel navy"><HexMark size={44} color="var(--accent-light)" /><span className="lab">menta sobre navy</span></div>
+      </React.Fragment>
+    );
+  </script>
+</body>
+</html>

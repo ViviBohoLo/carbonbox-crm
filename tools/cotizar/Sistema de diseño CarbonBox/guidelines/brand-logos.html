@@ -1,0 +1,33 @@
+<!-- @dsCard group="Brand" viewport="700x180" name="Lockup" subtitle="Isotipo + wordmark · 'Carbon' 300 / 'Box' 700, Poppins" -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<script crossorigin src="https://unpkg.com/react@18.3.1/umd/react.development.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js"></script>
+<script src="../_ds_bundle.js"></script>
+<style>
+  body { margin: 0; background: var(--surface-card); }
+  #root { padding: 28px 32px; display: flex; align-items: center; gap: 48px; }
+  .lab { font-size: 11px; color: var(--ink-3); font-family: var(--font-mono); margin-top: 14px; }
+  .cell { display: flex; flex-direction: column; align-items: flex-start; }
+  .divider { width: 1px; align-self: stretch; background: var(--line); }
+</style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { Logo } = window.DesignSystem_515ed5;
+    ReactDOM.createRoot(document.getElementById('root')).render(
+      <React.Fragment>
+        <div className="cell"><Logo size={40} /><span className="lab">lockup · principal</span></div>
+        <div className="divider"></div>
+        <div className="cell"><Logo size={30} /><span className="lab">compacto · 30px</span></div>
+        <div className="cell" style={{ marginLeft: 'auto' }}><Logo size={26} showWordmark={false} /><span className="lab">solo isotipo</span></div>
+      </React.Fragment>
+    );
+  </script>
+</body>
+</html>

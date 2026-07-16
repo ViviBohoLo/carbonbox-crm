@@ -46,3 +46,6 @@ node_modules/
 # Temporales de LibreOffice (quedan al convertir a PDF)
 *.tmp
 .~lock.*#
+
+# Transcripciones de llamadas con clientes: son datos de cliente, no insumos versionables
+tools/cotizar/Insumos/*.docx

@@ -1,0 +1,24 @@
+<!-- @dsCard group="Colors" viewport="700x150" name="Categorías de emisión" subtitle="Paleta data-viz — Energía, Transporte, Procesos, Residuos" -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin: 0; background: var(--surface-card); font-family: var(--font-body); }
+  .wrap { display: flex; gap: 12px; padding: 24px; }
+  .item { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+  .chip { height: 56px; border-radius: 10px; }
+  .lab { font-size: 12px; font-weight: 700; color: var(--primary); }
+  .hex { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="item"><div class="chip" style="background:var(--viz-energia)"></div><span class="lab">Energía</span><span class="hex">#1620A4</span></div>
+    <div class="item"><div class="chip" style="background:var(--viz-transporte)"></div><span class="lab">Transporte</span><span class="hex">#2F6B4A</span></div>
+    <div class="item"><div class="chip" style="background:var(--viz-procesos)"></div><span class="lab">Procesos</span><span class="hex">#7A82A0</span></div>
+    <div class="item"><div class="chip" style="background:var(--viz-residuos)"></div><span class="lab">Residuos</span><span class="hex">#C2C8DB</span></div>
+  </div>
+</body>
+</html>
