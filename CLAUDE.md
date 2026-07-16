@@ -24,11 +24,11 @@ migración innecesaria.
 |---|---|
 | `crm-scripts/` | Scripts Python (stdlib) que corren en el VPS. `crm_lib.py` es el cliente de la API de Twenty. |
 | `tools/cotizar/` | Motor de cotizaciones: genera decks `.pptx`. Node + pptxgenjs, Python + Pillow. |
-| `cobros/` | SOP del flujo mensual de cobros (Helisa → Twenty). Solo documentos. |
 | `deploy/` | Docker Compose, Caddy, systemd, cron del CRM. |
 | `rebrand/` | Parche para reconstruir la imagen personalizada de Twenty. |
 | `branding/` | Logos, tokens de color, guías HTML. |
 | `docs/` | Planes y specs. **Historia, no instrucciones** — ver abajo. |
+| `scripts-ops/` | Operaciones puntuales ya ejecutadas y verificadas (2026-07-07/08): crear el campo `suscritoMarketing`, backfill de contactos existentes, y filtro `fuenteLead IS WEB` en el workflow de bienvenida. Registro histórico, no herramientas reutilizables — no se corren de nuevo. No se despliegan al VPS junto con `crm-scripts/`: se copiaron ahí una sola vez para ejecutarse contra `crm_lib.py` y no forman parte del despliegue regular. |
 
 ## El CRM
 
