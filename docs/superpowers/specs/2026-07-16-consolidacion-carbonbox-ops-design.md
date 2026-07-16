@@ -29,7 +29,9 @@ El daño real no fue pérdida de trabajo — el trabajo se commiteó correctamen
 
 ### Riesgos concretos, en orden
 
-1. **`Automatización de cotizaciones` no tiene git.** 73 MB con las cotizaciones reales de PepsiCo, WOM, Imprenta Nacional y Hotel Waya, más los generadores y los Insumos. Sin historial ni remoto. **Es el único trabajo realmente sin respaldo, y es la carpeta más activa (tocada hoy).**
+1. **El motor de cotizaciones no tiene git.** `Generadores/`, `Insumos/`, `Recursos/`, `Logos/` y el sistema de diseño (~12 MB) son trabajo original sin historial ni remoto, en la carpeta más activa (tocada hoy). **Es lo único realmente sin respaldo en todo CarbonBox.**
+
+   Los entregables (`Cotizaciones/`, 61 MB) **no** son un riesgo: se envían por correo a los clientes, así que el correo ya es su respaldo. No necesitan versionado.
 2. **Credenciales en claro:** `Cobros CMR CarbonBox/terminal Helisa.txt` contiene dos juegos de usuario/contraseña del portal Helisa Cloud en texto plano.
 3. **Carpetas locales que se quedan atrás en silencio.** `carbonbox-crm` llevaba 2 commits de retraso; nada avisó.
 4. **Ambigüedad para el agente.** Sin fuente única de verdad, cada sesión puede elegir distinto.
@@ -71,8 +73,22 @@ Cinco archivos de texto que describen escrituras al mismo Twenty que administra 
 **El `CLAUDE.md` es la pieza que impide la recaída.**
 Debe declarar sin ambigüedad: dónde vive el código, cómo llega al VPS, **cómo se sincroniza con GitHub antes de empezar a trabajar** (el fallo que causó el desfase), y qué se versiona y qué no. Los planes y specs existentes pasan a `docs/` como registro histórico — **son ellos los que se contradicen**, y deben dejar de leerse como instrucciones vigentes.
 
-**Los binarios quedan fuera de git, no fuera del disco.**
-`Cotizaciones/`, `Recursos/` y `Logos/` (≈70 MB de PPTX y PNG, crecimiento ilimitado) permanecen en la carpeta local, excluidos vía `.gitignore`. El spec de cotizar ya contempla Drive como destino de los decks. Se versiona el código, `Insumos/`, `docs/`, `branding/` y el sistema de diseño: pocos MB, y es lo irreemplazable.
+**La línea de corte es producción vs. consumo, no "binario vs. texto".**
+
+Lo que el código **consume** entra al repo; lo que el código **produce** se queda fuera.
+
+| Carpeta | Peso | Rol | ¿Git? |
+|---|---|---|---|
+| `Generadores/`, `Insumos/`, `docs/`, sistema de diseño | 3.4 MB | Código y fuentes | ✅ Sí |
+| `Recursos/` (27 PNG), `Logos/` (7 PNG) | 8.6 MB | **Entrada**: los generadores hacen `chdir` a `Recursos/` y los leen para armar el deck | ✅ Sí |
+| `Cotizaciones/` | 61 MB | **Salida**: los decks entregados. Crece sin techo | ❌ No |
+| `node_modules/` | 7.6 MB | Se reconstruye con `npm install` | ❌ No |
+
+Repo resultante: ≈12 MB. Trivial para git, y **una copia fresca del repo puede generar un deck sin conseguir nada por fuera** — que es la prueba de que la línea está bien trazada.
+
+Una versión anterior de este spec excluía `Recursos/` y `Logos/` por tamaño. Era un error de agrupación: no son entregables, son ingredientes fijos de la marca; sin ellos `node generador.js` truena en un clon nuevo.
+
+`Cotizaciones/` permanece en el disco local, solo invisible para git. **Su respaldo es el correo**: los decks se envían a los clientes, así que ya existen fuera del equipo. Automatizar su subida a Drive es Etapa 2 del proyecto de cotizar, y una mejora, no una mitigación de riesgo.
 
 **Los datos de clientes no entran a git.**
 El README del repo declara: "no contiene datos de clientes ni secretos". `CRM CarbonBox/Archivos Hubspot/` (2 CSV export de HubSpot, 2.3 MB de contactos y empresas) y `transcripción video de youtube.docx` respetan esa línea: se conservan en disco o en Drive, fuera del repo.
@@ -96,21 +112,27 @@ El orden es parte del diseño: hay pasos irreversibles.
 
 Copiar las cuatro carpetas completas a un destino externo antes de mover un solo archivo.
 
-### 2. Poner cotizar a salvo — PRIORIDAD
+### 2. Poner el motor de cotizar a salvo — PRIORIDAD
 
-Es el único trabajo sin respaldo. Entra al repo como `tools/cotizar/` con su `.gitignore` configurado antes del primer commit, para que los 70 MB de binarios nunca entren al historial. Arreglar `package.json` (hoy sin `name` ni `scripts`).
+Es el único trabajo sin respaldo. Entra al repo como `tools/cotizar/` con el `.gitignore` **configurado antes del primer commit**, para que `Cotizaciones/` y `node_modules/` nunca entren al historial. Arreglar `package.json` (hoy sin `name` ni `scripts`).
 
 Se hace temprano y no al final: cada día que pasa es un día de exposición.
+
+**Verificación de que la línea quedó bien trazada:** clonar el repo en una carpeta limpia, `npm install`, y generar un deck de prueba. Si truena por un asset faltante, algo que se consume quedó del lado equivocado.
 
 ### 3. Renombrar el repo
 
 `carbonbox-crm` → `carbonbox-ops`, en local y en GitHub. Actualizar el remoto.
 
-### 4. Verificar el repo contra el VPS
+### 4. Verificar el repo contra el VPS — ✅ HECHO (16-jul)
 
-El repo es autoritativo frente a `CRM CarbonBox` — verificado por diff. Falta confirmar que **coincide con lo que realmente corre en el VPS** (`72.60.125.170:/root/crm-scripts/`). Es una comprobación, no una fusión: si hay diferencia, se investiga antes de tocar nada.
+Comprobado por hash: los 19 scripts de `72.60.125.170:/root/crm-scripts/` son **idénticos** a los del repo. Única diferencia: `test_gtasks_sync.py` (archivo de test, no afecta producción). El repo tiene 3 tests más que el VPS no necesita.
 
-Correr los tests (`python3 -m unittest`) como línea base.
+Conclusión: **el repo es un reflejo exacto de producción.** No hay nada que reconciliar.
+
+Queda pendiente correr los tests (`python3 -m unittest`) como línea base antes de tocar nada.
+
+**El VPS no se toca en toda la migración.** Verificado: no tiene ningún clon del repo (el único `.git` es de `.openclaw/workspace`, sin remoto) y el cron no usa git. Los scripts llegan copiados a mano. Renombrar el repo es invisible para el servidor. Twenty lleva 9 días arriba y sigue igual.
 
 ### 5. Retirar `CRM CarbonBox`
 
@@ -137,14 +159,16 @@ Limpieza menor: `Cotizaciones/Imprenta Nacional de Colombia/lu536y5c0.tmp` y `.~
 ## Criterios de éxito
 
 1. Existe una sola carpeta `carbonbox-ops`, respaldada en GitHub.
-2. El código de cotizar está versionado; sus 70 MB de binarios no.
-3. El repo coincide con lo desplegado en el VPS.
-4. Los tests pasan.
-5. `terminal Helisa.txt` no existe en disco ni en el historial de git.
-6. `CLAUDE.md` responde sin ambigüedad dónde va el código, cómo se despliega y cómo sincronizar.
-7. Ningún doc vigente contradice a otro sobre la carpeta de desarrollo.
-8. El repo no contiene datos de clientes ni binarios de crecimiento ilimitado.
-9. Las carpetas viejas siguen en disco, marcadas.
+2. El motor de cotizar está versionado con sus assets; `Cotizaciones/` y `node_modules/` no.
+3. Un clon fresco del repo genera un deck de prueba sin conseguir nada por fuera.
+4. El repo coincide con lo desplegado en el VPS. **(Verificado el 16-jul: los 19 scripts de `/root/crm-scripts/` son idénticos al repo, hash por hash. Solo difiere `test_gtasks_sync.py`, que no afecta producción.)**
+5. Los tests pasan.
+6. `terminal Helisa.txt` no existe en disco ni en el historial de git.
+7. `CLAUDE.md` responde sin ambigüedad dónde va el código, cómo se despliega y cómo sincronizar.
+8. Ningún doc vigente contradice a otro sobre la carpeta de desarrollo.
+9. El repo no contiene datos de clientes ni salidas de crecimiento ilimitado.
+10. Las carpetas viejas siguen en disco, marcadas.
+11. El CRM en producción no se vio afectado en ningún momento.
 
 ## Fuera de alcance
 
