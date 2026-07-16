@@ -29,6 +29,7 @@ migración innecesaria.
 | `branding/` | Logos, tokens de color, guías HTML. |
 | `docs/` | Planes y specs. **Historia, no instrucciones** — ver abajo. |
 | `scripts-ops/` | Operaciones puntuales ya ejecutadas y verificadas (2026-07-07/08): crear el campo `suscritoMarketing`, backfill de contactos existentes, y filtro `fuenteLead IS WEB` en el workflow de bienvenida. Registro histórico, no herramientas reutilizables — no se corren de nuevo. No se despliegan al VPS junto con `crm-scripts/`: se copiaron ahí una sola vez para ejecutarse contra `crm_lib.py` y no forman parte del despliegue regular. |
+| `cobros/` | SOP del flujo mensual de Cobros (Helisa → vista Cobros en Twenty, que es una vista sobre Oportunidades): instrucciones paso a paso y plan de diseño, con ejemplos genéricos. Solo documentos — no hay código, no se despliega nada. La bitácora de corridas reales (cartera, montos, NITs de clientes) vive fuera del repo, en `C:/Users/USUARIO/Claude/_DATOS_CarbonBox/Cobros/`. |
 
 ## El CRM
 
