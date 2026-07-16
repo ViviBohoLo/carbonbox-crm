@@ -35,3 +35,29 @@ backups/
 Thumbs.db
 *.swp
 nul
+
+# === tools/cotizar ===
+# Regla: lo que el código CONSUME entra (Recursos/, Logos/);
+# lo que PRODUCE queda fuera. Los decks se respaldan por correo.
+tools/cotizar/Cotizaciones/
+tools/cotizar/node_modules/
+node_modules/
+
+# Temporales de LibreOffice (quedan al convertir a PDF)
+*.tmp
+.~lock.*#
+
+# Transcripciones de llamadas con clientes: son datos de cliente, no insumos versionables
+tools/cotizar/Insumos/*.docx
+
+# === Bitácoras de corridas con datos reales de clientes ===
+# Registros de ejecución (cartera, montos, pagos reales) de cualquier módulo del CRM.
+# Estos son datos de cliente, no procedimiento: viven en C:/Users/USUARIO/Claude/_DATOS_CarbonBox/,
+# nunca en git. Esta regla es un backstop de nombre de archivo, no sustituye la revisión manual
+# antes de un commit.
+**/Estado y memoria*.md
+**/Bitácora*.md
+**/Bitacora*.md
+
+# Estado efímero de sesiones de trabajo
+.superpowers/

@@ -1,0 +1,13 @@
+{
+  "name": "carbonbox-cotizar",
+  "version": "1.0.0",
+  "description": "Generador de decks de cotización de CarbonBox",
+  "private": true,
+  "scripts": {
+    "precio": "python Generadores/calcular-precio.py",
+    "precio:eventos": "python Generadores/calcular-precio-eventos.py"
+  },
+  "dependencies": {
+    "pptxgenjs": "^4.0.1"
+  }
+}

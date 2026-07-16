@@ -1,0 +1,38 @@
+<!-- @dsCard group="Brand" viewport="700x190" name="Isotipo · espiral hexagonal" subtitle="Espiral hexagonal que gira hacia el centro. Vectorial (HexMark) + clearspace y escalas." -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<script crossorigin src="https://unpkg.com/react@18.3.1/umd/react.development.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js"></script>
+<script src="../_ds_bundle.js"></script>
+<style>
+  body { margin: 0; background: var(--surface-card); }
+  #root { padding: 26px 32px; display: flex; align-items: center; gap: 44px; }
+  .clear { padding: 18px; border: 1px dashed var(--primary-100); border-radius: 14px; }
+  .lab { font-size: 11px; color: var(--ink-3); font-family: var(--font-mono); text-align: center; margin-top: 12px; }
+  .col { display: flex; flex-direction: column; align-items: center; }
+  .sizes { display: flex; align-items: flex-end; gap: 22px; }
+</style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { HexMark } = window.DesignSystem_515ed5;
+    ReactDOM.createRoot(document.getElementById('root')).render(
+      <React.Fragment>
+        <div className="col"><div className="clear"><HexMark size={92} /></div><span className="lab">clearspace = 25%</span></div>
+        <div className="col">
+          <div className="sizes">
+            <HexMark size={72} /><HexMark size={48} /><HexMark size={30} /><HexMark size={18} />
+          </div>
+          <span className="lab">escala hasta favicon 18px</span>
+        </div>
+        <div className="col"><HexMark size={64} color="var(--accent)" /><span className="lab">acento verde</span></div>
+      </React.Fragment>
+    );
+  </script>
+</body>
+</html>

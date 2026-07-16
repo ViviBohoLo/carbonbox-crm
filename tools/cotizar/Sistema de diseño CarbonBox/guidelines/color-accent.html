@@ -1,0 +1,28 @@
+<!-- @dsCard group="Colors" viewport="700x150" name="Accent · verde bosque" subtitle="El acento de marca — #2f6b4a, CTAs, énfasis y datos positivos" -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin: 0; background: var(--surface-card); font-family: var(--font-body); }
+  .wrap { display: flex; padding: 22px 24px; }
+  .sw { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+  .chip { height: 64px; position: relative; }
+  .sw:first-child .chip { border-radius: 10px 0 0 10px; }
+  .sw:last-child .chip { border-radius: 0 10px 10px 0; }
+  .n { font-size: 11px; font-weight: 600; color: var(--ink); font-family: var(--font-mono); }
+  .h { font-size: 10px; color: var(--ink-3); font-family: var(--font-mono); text-transform: uppercase; }
+  .star { position: absolute; top: 8px; right: 10px; font-size: 10px; color: #fff; font-weight: 700; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="sw"><div class="chip" style="background:var(--accent-soft)"></div><span class="n">soft</span><span class="h">#E8F1EC</span></div>
+    <div class="sw"><div class="chip" style="background:var(--accent-mint-2)"></div><span class="n">mint-2</span><span class="h">#C8E6D8</span></div>
+    <div class="sw"><div class="chip" style="background:var(--accent-light)"></div><span class="n">light</span><span class="h">#7ED3A8</span></div>
+    <div class="sw"><div class="chip" style="background:var(--accent)"><span class="star">★</span></div><span class="n">accent</span><span class="h">#2F6B4A</span></div>
+    <div class="sw"><div class="chip" style="background:var(--accent-deep)"></div><span class="n">deep</span><span class="h">#1E4A32</span></div>
+  </div>
+</body>
+</html>
