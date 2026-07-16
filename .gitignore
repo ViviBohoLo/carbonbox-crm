@@ -35,3 +35,14 @@ backups/
 Thumbs.db
 *.swp
 nul
+
+# === tools/cotizar ===
+# Regla: lo que el código CONSUME entra (Recursos/, Logos/);
+# lo que PRODUCE queda fuera. Los decks se respaldan por correo.
+tools/cotizar/Cotizaciones/
+tools/cotizar/node_modules/
+node_modules/
+
+# Temporales de LibreOffice (quedan al convertir a PDF)
+*.tmp
+.~lock.*#
