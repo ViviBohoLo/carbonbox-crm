@@ -139,10 +139,7 @@ async function registrarCotizacion({ cliente, nit, plan, precio, servicio, nota 
   texto += `**Fecha de envío:** ${fecha}\n`;
   if (nota) texto += `\n${nota}`;
   await agregarNota(oppId, texto);
-
-  console.log(`✅ ${accion}`);
-  console.log(`   Oportunidad: ${oppId}`);
-  console.log(`   CRM: https://crm.carbonbox.app/object/opportunity/${oppId}`);
+  return { oppId, accion, texto };
 }
 
 function parseArgs(argv) {
@@ -158,17 +155,29 @@ function parseArgs(argv) {
   return out;
 }
 
-const args = parseArgs(process.argv.slice(2));
-if (!args.cliente || !args.nit || !args.plan) {
-  console.error("Uso: node registrar-cotizacion.js --cliente \"Nombre\" --nit \"900...\" --plan Pro [--precio 4101] [--servicio \"...\"] [--nota \"...\"]");
-  process.exit(1);
+// Solo corre como CLI. Al importarlo (los tests) no ejecuta nada contra el CRM.
+if (require.main === module) {
+  const args = parseArgs(process.argv.slice(2));
+  if (!args.cliente || !args.nit || !args.plan) {
+    console.error("Uso: node registrar-cotizacion.js --cliente \"Nombre\" --nit \"900...\" --plan Pro [--precio 4101] [--servicio \"...\"] [--nota \"...\"]");
+    process.exit(1);
+  }
+
+  registrarCotizacion({
+    cliente: args.cliente,
+    nit: args.nit,
+    plan: args.plan,
+    precio: args.precio ? parseFloat(args.precio) : null,
+    servicio: args.servicio || "Estimación de huella de carbono",
+    nota: args.nota || null
+  }).then(({ oppId, accion }) => {
+    console.log(`✅ ${accion}`);
+    console.log(`   Oportunidad: ${oppId}`);
+    console.log(`   CRM: https://crm.carbonbox.app/object/opportunity/${oppId}`);
+  }).catch(e => { console.error("ERROR:", e.message); process.exit(1); });
 }
 
-registrarCotizacion({
-  cliente: args.cliente,
-  nit: args.nit,
-  plan: args.plan,
-  precio: args.precio ? parseFloat(args.precio) : null,
-  servicio: args.servicio || "Estimación de huella de carbono",
-  nota: args.nota || null
-}).catch(e => { console.error("ERROR:", e.message); process.exit(1); });
+module.exports = {
+  registrarCotizacion, findOrCreateCompany, findOpenOpportunity,
+  crearOportunidad, moverAPropuestaEnviada, agregarNota, parseArgs,
+};
