@@ -8,6 +8,21 @@ process.env.TWENTY_API_TOKEN = "token-de-prueba";
 
 const R = require("../registrar-cotizacion");
 
+test("planACodigo mapea los planes de la calculadora al campo del CRM", () => {
+  assert.equal(R.planACodigo("esencial"), "ESENCIAL");
+  assert.equal(R.planACodigo("Pro"), "PRO");
+  assert.equal(R.planACodigo("PRO"), "PRO");
+  // El CRM no tiene "Experto": se guarda como Premium (decisión de Viviana 2026-07-21)
+  assert.equal(R.planACodigo("experto"), "PREMIUM");
+  assert.equal(R.planACodigo("Experto"), "PREMIUM");
+});
+
+test("planACodigo devuelve null si el plan no se reconoce", () => {
+  assert.equal(R.planACodigo("otro"), null);
+  assert.equal(R.planACodigo(""), null);
+  assert.equal(R.planACodigo(undefined), null);
+});
+
 // CRM falso. `empresa` y `oportunidad` definen qué "ya existe" en el CRM.
 // Devuelve las llamadas registradas para poder afirmar sobre ellas.
 function crmFalso({ empresa = null, oportunidad = null } = {}) {

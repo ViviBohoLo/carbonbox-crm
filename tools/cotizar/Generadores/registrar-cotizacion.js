@@ -104,9 +104,24 @@ async function crearOportunidad(companyId, nombreCliente, servicio, precio) {
   return d.createOpportunity.id;
 }
 
-async function moverAPropuestaEnviada(oppId, precio) {
+// La calculadora maneja Esencial/Pro/Experto; el campo planCarbonbox del CRM tiene
+// ESENCIAL/PRO/PREMIUM/ENTERPRISE/LICITACION. "Experto" se guarda como PREMIUM.
+const PLAN_A_CODIGO = { esencial: "ESENCIAL", pro: "PRO", experto: "PREMIUM" };
+
+function planACodigo(plan) {
+  if (!plan) return null;
+  return PLAN_A_CODIGO[String(plan).trim().toLowerCase()] || null;
+}
+
+async function moverAPropuestaEnviada(oppId, precio, extras = {}) {
   const data = { stage: "PROPUESTA_ENVIADA" };
   if (precio) data.amount = { amountMicros: Math.round(precio * 1_000_000), currencyCode: "USD" };
+  const codigo = planACodigo(extras.plan);
+  if (codigo) data.planCarbonbox = codigo;
+  if (extras.linkCotizacion) {
+    data.linkCotizacion = { primaryLinkUrl: extras.linkCotizacion, primaryLinkLabel: "Cotización" };
+  }
+  if (extras.borrador) data.borradorCorreo = extras.borrador;
   await gql(`mutation($id: UUID!, $data: OpportunityUpdateInput!) {
       updateOpportunity(id:$id, data:$data) { id } }`, { id: oppId, data });
 }
@@ -119,17 +134,19 @@ async function agregarNota(oppId, texto) {
     { data: { noteId, targetOpportunityId: oppId } });
 }
 
-async function registrarCotizacion({ cliente, nit, plan, precio, servicio, nota }) {
+async function registrarCotizacion({ cliente, nit, plan, precio, servicio, nota, linkCotizacion, borrador }) {
   const companyId = await findOrCreateCompany(cliente, nit);
   const existente = await findOpenOpportunity(companyId);
+  const extras = { plan, linkCotizacion, borrador };
 
   let oppId, accion;
   if (existente) {
     oppId = existente.id;
-    await moverAPropuestaEnviada(oppId, precio);
+    await moverAPropuestaEnviada(oppId, precio, extras);
     accion = `Oportunidad existente actualizada → Propuesta enviada (${existente.name})`;
   } else {
     oppId = await crearOportunidad(companyId, cliente, servicio, precio);
+    await moverAPropuestaEnviada(oppId, precio, extras);
     accion = "Oportunidad nueva creada en Propuesta enviada";
   }
 
@@ -163,13 +180,20 @@ if (require.main === module) {
     process.exit(1);
   }
 
+  // El borrador se pasa por ARCHIVO, no por argumento: es largo y multilínea, y como
+  // argumento de shell se rompe con las comillas y los saltos de línea.
+  let borrador = null;
+  if (args["borrador-archivo"]) borrador = fs.readFileSync(args["borrador-archivo"], "utf8");
+
   registrarCotizacion({
     cliente: args.cliente,
     nit: args.nit,
     plan: args.plan,
     precio: args.precio ? parseFloat(args.precio) : null,
     servicio: args.servicio || "Estimación de huella de carbono",
-    nota: args.nota || null
+    nota: args.nota || null,
+    linkCotizacion: args["link-cotizacion"] || null,
+    borrador
   }).then(({ oppId, accion }) => {
     console.log(`✅ ${accion}`);
     console.log(`   Oportunidad: ${oppId}`);
@@ -179,5 +203,5 @@ if (require.main === module) {
 
 module.exports = {
   registrarCotizacion, findOrCreateCompany, findOpenOpportunity,
-  crearOportunidad, moverAPropuestaEnviada, agregarNota, parseArgs,
+  crearOportunidad, moverAPropuestaEnviada, agregarNota, parseArgs, planACodigo,
 };

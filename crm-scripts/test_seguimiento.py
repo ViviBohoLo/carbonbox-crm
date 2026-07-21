@@ -43,5 +43,25 @@ class TestPlantilla(unittest.TestCase):
         self.assertIn("wa.me/573208675567", html)
 
 
+class TestRemitentesYCC(unittest.TestCase):
+    def test_remitentes_son_los_cuatro(self):
+        self.assertEqual(set(s.REMITENTES), {"viviana", "laura", "alejandra", "miguel"})
+        self.assertIn("viviana.bohorquez@carbonbox.app", s.REMITENTES["viviana"])
+        self.assertIn("Laura", s.REMITENTES["laura"])
+
+    def test_parse_cc_separa_y_limpia(self):
+        self.assertEqual(s.parse_cc("a@x.co, b@y.co;c@z.co"), ["a@x.co", "b@y.co", "c@z.co"])
+        self.assertEqual(s.parse_cc("  a@x.co  "), ["a@x.co"])
+        self.assertEqual(s.parse_cc(""), [])
+        self.assertEqual(s.parse_cc(None), [])
+
+    def test_parse_cc_descarta_lo_que_no_es_correo(self):
+        self.assertEqual(s.parse_cc("a@x.co, basura, b@y.co"), ["a@x.co", "b@y.co"])
+
+    def test_permalink(self):
+        self.assertEqual(s.permalink_gmail("abc123"),
+                         "https://mail.google.com/mail/u/0/#all/abc123")
+
+
 if __name__ == "__main__":
     unittest.main()

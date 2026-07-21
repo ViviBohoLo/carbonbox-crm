@@ -2,7 +2,7 @@
 """Correo de seguimiento con un clic (Fase 3).
 Firma HMAC de los enlaces, plantillas por etapa y envío por Gmail API (como Viviana).
 Las funciones puras (firmar/valida/plantilla) se prueban en test_seguimiento.py."""
-import base64, hmac, hashlib, json, urllib.request
+import base64, hmac, hashlib, json, re, urllib.request
 from email.message import EmailMessage
 
 SECRETO_FILE = "/root/.seguimiento_secret"
@@ -31,6 +31,29 @@ PLANTILLAS = {
         "¿Agendamos una llamada corta? Elige el horario que mejor te quede aquí: "
         "https://calendar.app.google/Ede9nmxveoahb5by8"),
 }
+
+
+# Remitentes válidos: son send-as verificados sobre info@carbonbox.app, así que el
+# sistema puede enviar como cualquiera de ellos. La página deja elegir quién firma.
+REMITENTES = {
+    "viviana": "Viviana Bohórquez <viviana.bohorquez@carbonbox.app>",
+    "laura": "Laura Bautista <laura.bautista@carbonbox.app>",
+    "alejandra": "Alejandra Rojas <alejandra.rojas@carbonbox.app>",
+    "miguel": "Miguel Romero <miguel.romero@carbonbox.app>",
+}
+
+
+def parse_cc(texto):
+    """Lista de correos a partir de un campo libre (coma, punto y coma o espacio)."""
+    if not texto:
+        return []
+    crudos = re.split(r"[,;\s]+", texto.strip())
+    return [c for c in crudos if "@" in c and "." in c.split("@")[-1]]
+
+
+def permalink_gmail(thread_id):
+    """Link permanente del correo en el buzón info@ (solo abre estando logueado ahí)."""
+    return f"https://mail.google.com/mail/u/0/#all/{thread_id}"
 
 
 def aplica_limite_semana(stage):
@@ -71,12 +94,15 @@ def cuerpo_email_html(cuerpo_texto):
     return "<p>" + esc + "</p><p>Un abrazo,</p>" + FIRMA_VIVIANA
 
 
-def enviar_gmail(access_token, para, asunto, html, texto="", remitente=REMITENTE):
-    """Envía un correo (HTML + texto plano) por la Gmail API. Devuelve el id del mensaje.
+def enviar_gmail(access_token, para, asunto, html, texto="", remitente=REMITENTE, cc=None):
+    """Envía un correo (HTML + texto plano) por la Gmail API.
+    Devuelve el dict de la API: {"id": ..., "threadId": ...}.
     Usa EmailMessage para codificar bien las cabeceras con acentos (si no, Gmail
     ignora el alias del remitente y cae al correo por defecto)."""
     msg = EmailMessage()
     msg["To"] = para
+    if cc:
+        msg["Cc"] = ", ".join(cc) if isinstance(cc, (list, tuple)) else cc
     msg["From"] = remitente
     msg["Subject"] = asunto
     msg.set_content(texto or "Abre este correo en un cliente que muestre HTML.")
@@ -88,7 +114,7 @@ def enviar_gmail(access_token, para, asunto, html, texto="", remitente=REMITENTE
         data=body, headers={"Authorization": f"Bearer {access_token}",
                             "Content-Type": "application/json"})
     with urllib.request.urlopen(req, timeout=30) as r:
-        return json.load(r).get("id")
+        return json.load(r)
 
 
 # --- Datos de la oportunidad + estado (usan gql; import diferido para no acoplar) ---
