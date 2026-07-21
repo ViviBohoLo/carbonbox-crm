@@ -13,18 +13,47 @@ Flujo para generar cotizaciones comerciales (deck de 13 slides) de CarbonBox.
 
 ## Cómo generar una cotización
 
-1. Leer `Insumos/instrucciones.md` (estructura y reglas). Primero confirmar si es huella **organizacional** (empresa) o de **evento** — son calculadoras distintas.
-2. Calcular precio:
-   - Organizacional: `Insumos/reglas-precio.md` → `cd Generadores && python3 calcular-precio.py --sector "…" --empleados N [--plan pro]`
-   - Evento: `Insumos/reglas-precio-eventos.md` → `cd Generadores && python3 calcular-precio-eventos.py --tipo-evento "…" --num-asistentes N [--plan pro]`
-3. Duplicar `Generadores/generador-pptx-pepsico.js` (generador vigente), ajustar el bloque **Datos del caso** y los textos del cliente.
-4. Generar: `node generador-<cliente>.js` → escribe el `.pptx` en `Cotizaciones/<Cliente>/`.
-5. QA: `soffice --headless --convert-to pdf <archivo>.pptx` y revisar.
+El flujo lo conduce la skill **`/cotizar`** (`.claude/skills/cotizar/SKILL.md`), que arranca
+desde una oportunidad del CRM. Estos son los pasos y los comandos que ejecuta.
+
+**Ya no se duplica un generador por cliente.** El motor es genérico: lee un `contenido.yml`
+y relee `Insumos/*.md` en cada corrida, así que cambiar textos fijos o reglas de precio no
+toca código. Los `generador-<cliente>.js` sueltos son del flujo anterior.
+
+1. Confirmar el tipo de huella: **organizacional** (empresa) o **evento** — son calculadoras
+   distintas. Reglas y estructura en `Insumos/instrucciones.md`.
+2. Leer la oportunidad en el CRM (empresa, NIT, sector, plan, `linkTranscripcion`) y, con ese
+   link, la transcripción de la reunión en Drive. Si el campo no existe, ver
+   `Generadores/_setup/crear-campo-transcripcion.md`.
+3. Calcular el precio — **determinístico, no estimar**:
+   - Organizacional: `python3 Generadores/calcular-precio.py --sector "…" --empleados N --plan pro --json`
+   - Evento: `python3 Generadores/calcular-precio-eventos.py --tipo-evento "…" --num-asistentes N --plan pro --json`
+4. Escribir `Cotizaciones/<Cliente>/contenido.yml` con los datos y los 4 precios del JSON.
+   Formato de referencia: `Cotizaciones/_Plantilla/contenido.ejemplo.yml`.
+5. Renderizar:
+   ```bash
+   node Generadores/render.js "Cotizaciones/<Cliente>/contenido.yml"
+   bash Generadores/render-pdf.sh "Cotizaciones/<Cliente>/<archivo>.pptx"
+   ```
+   El `.pptx` queda junto al `.yml`. Un 2º argumento opcional elige otra ruta de salida.
+6. QA con el checklist de `Insumos/instrucciones.md` (NIT presente, fecha completa, precio USD,
+   "exentos" bien escrito, mensual = precio÷12, fecha límite = envío + 60 días, cronograma
+   acorde al plan). Iterar editando el YAML y volviendo a renderizar.
+7. Al enviar, registrar en el CRM: `node Generadores/registrar-cotizacion.js --cliente "…"
+   --nit "…" --plan Pro --precio N` — mueve o crea la oportunidad en "Propuesta enviada" en
+   crm.carbonbox.app. Requiere un token local; ver la cabecera del script. **Nunca pegues el
+   token en el chat.**
 
 Detalle completo del diseño y del flujo: **`Insumos/NOTAS-DISENO-Y-PLANTILLA.md`** (secciones 0 y 11–14).
 
+## Tests
+
+```bash
+node --test "Generadores/test/*.test.js"
+```
+
 ## Requisitos
 
-- Node + `pptxgenjs` (`npm install` en la raíz).
+- Node 18+ (`npm install` en la raíz). El 18+ es obligatorio: `registrar-cotizacion.js` usa `fetch` incorporado.
 - Python + Pillow (`pip install pillow`) para `generador-cover.py`.
 - LibreOffice (`soffice`) para exportar a PDF.

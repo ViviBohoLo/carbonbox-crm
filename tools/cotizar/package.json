@@ -8,6 +8,7 @@
     "precio:eventos": "python Generadores/calcular-precio-eventos.py"
   },
   "dependencies": {
+    "js-yaml": "^5.2.1",
     "pptxgenjs": "^4.0.1"
   }
 }

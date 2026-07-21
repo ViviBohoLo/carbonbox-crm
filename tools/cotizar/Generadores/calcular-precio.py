@@ -16,6 +16,8 @@ Uso:
 
 import argparse
 import math
+import sys
+import json as _json
 
 # ─────────────────────────────────────────────────────────────────────────────
 # BASE DE DATOS DE PRECIOS (replicada del JS de carbonbox.app)
@@ -446,8 +448,25 @@ if __name__ == "__main__":
     parser.add_argument("--plan", choices=["esencial", "pro", "experto"], help="Plan específico")
     parser.add_argument("--listar-sectores", action="store_true", help="Lista todos los sectores disponibles")
     parser.add_argument("--desglose", action="store_true", help="Mostrar desglose de componentes")
+    parser.add_argument("--json", action="store_true", help="Salida JSON (una línea) para consumir desde otros scripts")
 
     args = parser.parse_args()
+
+    if args.json:
+        tamano = args.tamano or (normalizar_tamano(args.empleados) if args.empleados else None)
+        if not (args.sector and tamano and args.plan):
+            print(_json.dumps({"error": "faltan --sector, --plan y --tamano/--empleados"}))
+            sys.exit(1)
+        r = calcular_precio(args.plan, args.sector, tamano)
+        if "error" in r:
+            print(_json.dumps({"error": r["error"]}, ensure_ascii=False))
+            sys.exit(1)
+        print(_json.dumps({
+            "precio_final": r["precio_final"], "precio_mensual": r["precio_mensual"],
+            "precio_atica": r["precio_atica"], "precio_mensual_atica": r["precio_mensual_atica"],
+            "plan": r["plan"], "sector": r["sector"], "tamano": r["tamano"],
+        }, ensure_ascii=False))
+        sys.exit(0)
 
     if args.listar_sectores:
         print("\nSectores disponibles:")
