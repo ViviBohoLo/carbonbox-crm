@@ -148,6 +148,7 @@ function parseCaso(md) {
   for (const ln of lineas) {
     const t = ln.trim(); if (!t) continue;
     if (/^[-–—]{2,}$/.test(t)) continue;   // separador markdown "---" → ignorar
+    if (/^Sectores?\s*:/i.test(t)) continue;  // metadato de enrutamiento, no es texto de la slide
     const mQ = t.match(/^\*"?(.+?)"?\*$/);
     if (/^\*\*(.+)\*\*$/.test(t) && !titulo) { titulo = t.replace(/\*\*/g, ""); }
     else if (mQ) { quote = mQ[1].replace(/^"|"$/g, ""); }

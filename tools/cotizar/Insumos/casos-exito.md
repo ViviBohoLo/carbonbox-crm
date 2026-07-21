@@ -1,11 +1,55 @@
 # Base de datos — Casos de éxito por sector
 
 Última actualización: abril 2026
-Nota: estos son datos de prueba. Reemplazar con información real cuando esté disponible.
+
+> ⚠️ **Las citas de este archivo son datos de prueba: nadie las dijo.** Reemplazarlas por
+> testimonios reales antes de que salgan a un cliente. Si un caso no tiene una cita real,
+> es mejor borrarle la línea de la cita: el deck queda con el párrafo solo, sin comillas
+> vacías. (El caso genérico ya funciona así.)
+
+**Cómo agregar o cambiar un caso**
+
+Cada caso es una sección `## clave` con esta estructura, **en este orden**
+(el ejemplo va indentado a propósito, para que no se lea como una sección de verdad):
+
+```markdown
+  ## sector_ejemplo
+  Sectores: palabra1, palabra2      ← cuándo se usa este caso (no sale en el deck)
+
+  **Título en negrita**             ← encabezado del caso
+  Párrafo que describe el caso.     ← el cuerpo
+  *"La cita del cliente."*          ← la cita (cursiva + comillas). Opcional.
+  Línea de cierre.                  ← solo aparece si hay cita
+```
+
+Al escribirlo de verdad, **pega los `##` al margen izquierdo**, sin los espacios.
+
+**La línea `Sectores:`** decide qué caso se usa según el sector que tenga la empresa en el
+CRM. Se compara sin tildes ni mayúsculas y **por coincidencia parcial**: escribe la raíz de
+la palabra para atrapar sus variantes — `industri` atrapa *industria* e *industrial*;
+`energ` atrapa *energía* y *energético*. Gana la **primera** sección que coincida, en el
+orden de este archivo.
+
+`sector_generico_latam` **no lleva** línea `Sectores:`: es el caso que se usa cuando ninguno
+de los otros coincide. Déjalo siempre de último.
+
+Para agregar un sector nuevo basta con crear su sección aquí. **No hay que tocar código.**
+
+---
+
+## sector_agroindustria
+Sectores: agro, aliment
+
+**Una empresa del sector avícola con operación a escala nacional**
+
+Sin medición de huella de producto y con contratos de exportación en riesgo — sus compradores europeos empezaron a exigir datos ambientales verificables. En 4 meses completaron el Análisis de Ciclo de Vida (ACV) de su producto principal bajo ISO 14067, desde la producción de alimento balanceado hasta la distribución. Identificaron oportunidades de reducción del 18% en la fase de alimentación.
+
+*"Sin este reporte habríamos perdido dos contratos clave con compradores europeos."*
 
 ---
 
 ## sector_manufactura
+Sectores: manufactura, industri, energ
 
 **Una empresa líder del sector manufactura industrial en Colombia**
 
@@ -18,6 +62,7 @@ Llevan 3 años renovando su suscripción anual con CarbonBox.
 ---
 
 ## sector_salud
+Sectores: salud, fundaci, ong
 
 **Una institución del sector salud con más de 2.000 colaboradores en Colombia**
 
@@ -30,6 +75,7 @@ Hoy van en su segundo año con la plataforma.
 ---
 
 ## sector_eventos
+Sectores: evento, entreten, festiv
 
 **Un festival de música masivo con más de 80.000 asistentes**
 
@@ -42,6 +88,7 @@ Llevan 2 años midiendo su huella con CarbonBox.
 ---
 
 ## sector_financiero
+Sectores: financ, gremio, gobierno, seguro, public
 
 **Un gremio financiero de alcance nacional en Colombia**
 
@@ -53,17 +100,8 @@ Hoy gestionan la plataforma de forma autónoma, en su segundo año consecutivo.
 
 ---
 
-## sector_agroindustria
-
-**Una empresa del sector avícola con operación a escala nacional**
-
-Sin medición de huella de producto y con contratos de exportación en riesgo — sus compradores europeos empezaron a exigir datos ambientales verificables. En 4 meses completaron el Análisis de Ciclo de Vida (ACV) de su producto principal bajo ISO 14067, desde la producción de alimento balanceado hasta la distribución. Identificaron oportunidades de reducción del 18% en la fase de alimentación.
-
-*"Sin este reporte habríamos perdido dos contratos clave con compradores europeos."*
-
----
-
 ## sector_retail_moda
+Sectores: retail, moda, consumo, ecommerce, e-commerce, distribuidor
 
 **Una marca de moda sostenible con producción en Latinoamérica**
 

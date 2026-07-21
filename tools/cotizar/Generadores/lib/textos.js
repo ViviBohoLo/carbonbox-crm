@@ -25,18 +25,38 @@ function cargarCasos() {
 }
 
 // Mapa sector cliente -> clave de caso (instrucciones.md slide 6/7).
-const MAPA_SECTOR = [
-  [/(manufactura|industri|energ)/i, "sector_manufactura"],
-  [/(salud|fundaci|ong)/i, "sector_salud"],
-  [/(evento|entreten|festiv)/i, "sector_eventos"],
-  [/(financ|gremio|gobierno|seguro|p[uú]blic)/i, "sector_financiero"],
-  [/(agro|aliment)/i, "sector_agroindustria"],
-  [/(retail|moda|consumo|e-?commerce|distribuidor)/i, "sector_retail_moda"],
-];
-function casoPorSector(sectorCliente) {
-  const s = sectorCliente || "";
-  for (const [re, clave] of MAPA_SECTOR) if (re.test(s)) return clave;
-  return "sector_generico_latam";
+//
+// Los sectores de cada caso NO viven aquí: se declaran en Insumos/casos-exito.md con una
+// línea "Sectores: a, b, c" dentro de la sección. Así se agrega un sector nuevo editando
+// solo texto, sin tocar código. Gana la primera sección que coincida, en orden del archivo;
+// si ninguna coincide se usa el genérico.
+const CLAVE_FALLBACK = "sector_generico_latam";
+const RE_SECTORES = /^[ \t]*Sectores?[ \t]*:[ \t]*(.+)$/im;
+
+// minúsculas y sin tildes, para que "Energía" y "energia" coincidan igual.
+function normalizar(s) {
+  return (s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
 }
 
-module.exports = { cargarTextosFijos, cargarCasos, casoPorSector, parseSecciones };
+// [[clave, [palabras]], ...] en el orden en que aparecen las secciones del .md.
+function mapaSectores(casos) {
+  const out = [];
+  for (const [clave, cuerpo] of Object.entries(casos || {})) {
+    const m = (cuerpo || "").match(RE_SECTORES);
+    if (!m) continue;
+    const palabras = m[1].split(",").map(normalizar).filter(Boolean);
+    if (palabras.length) out.push([clave, palabras]);
+  }
+  return out;
+}
+
+function casoPorSector(sectorCliente, casos) {
+  const s = normalizar(sectorCliente);
+  if (!s) return CLAVE_FALLBACK;
+  for (const [clave, palabras] of mapaSectores(casos || cargarCasos())) {
+    if (palabras.some(p => s.includes(p))) return clave;
+  }
+  return CLAVE_FALLBACK;
+}
+
+module.exports = { cargarTextosFijos, cargarCasos, casoPorSector, mapaSectores, parseSecciones };
