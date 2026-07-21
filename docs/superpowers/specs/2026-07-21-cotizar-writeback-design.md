@@ -2,9 +2,9 @@
 
 **Fecha:** 2026-07-21
 **Estado:** Diseño aprobado por Viviana, pendiente de plan e implementación
-**Contexto:** La Etapa 1 de `/cotizar` ya genera el deck. Falta cerrar el ciclo: que al enviar
-la cotización queden en la oportunidad el **link del deck** y el **link del correo enviado**,
-sin que nadie tenga que acordarse de pegarlos.
+**Contexto:** La Etapa 1 de `/cotizar` ya genera el deck. Falta cerrar el ciclo: subir el deck,
+enviar la cotización al cliente y dejar en la oportunidad el **link del deck** y el **link del
+correo enviado**, sin que nadie tenga que acordarse de pegarlos.
 
 ---
 
@@ -31,8 +31,8 @@ Campos destino (ya existen en Opportunity): `linkCotizacion` (LINKS, id `a4bc459
 
 | Tema | Realidad |
 |---|---|
-| Quién envía | Viviana **o el encargado del cliente** (Laura, Alejandra, Miguel) |
-| Desde dónde | **Todos desde el buzón `info@carbonbox.app`**, eligiendo su nombre como remitente (*send-as* verificados) → el correo enviado queda en `info@`, que el token del servidor **sí puede leer** (`gmail.readonly`) |
+| Quién firma el envío | Viviana **o el encargado del cliente** (Laura, Alejandra, Miguel) |
+| Buzón | Todos operan sobre `info@carbonbox.app`; los cuatro nombres son *send-as* verificados, así que el sistema puede enviar **como cualquiera de ellos** |
 | Cómo llega el deck | **Link de Drive en el correo** (no adjunto) |
 | Dónde se archiva | Carpeta **`Leads`** (`13dvWmMahnoyl_xsAZohAGVHoA8vIdX5A`), con **una subcarpeta por empresa** (ya hay 25) |
 | Carpeta no encontrada | **Preguntar cuál usar. NUNCA crear carpetas nuevas.** |
@@ -40,9 +40,9 @@ Campos destino (ya existen en Opportunity): `linkCotizacion` (LINKS, id `a4bc459
 Notas del terreno:
 - Los nombres de carpeta **no coinciden literalmente** con el CRM: "Fundacion Santa Fe de Bogota"
   vs "Fundación Santafé de Bogotá", "Area Andina" vs "Área Andina" → hay que normalizar.
-- Ya existe un **duplicado**: "Hotel Waya" y "Hotel Waya Guajira". Por eso la regla de preguntar.
+- Ya existe un **duplicado**: "Hotel Waya" y "Hotel Waya Guajira". De ahí la regla de preguntar.
 - Los **transcripts** se archivan en otro árbol (`CMR/{Empresa}/`), no en `Leads/`. El material
-  de un cliente queda partido en dos sitios; se acepta por ahora (unificarlo es otro trabajo).
+  de un cliente queda partido en dos sitios; se acepta por ahora.
 
 ---
 
@@ -54,52 +54,72 @@ hay acceso a Drive.
 1. **Ubicar la carpeta** de la empresa dentro de `Leads/`:
    - Comparar normalizando (minúsculas, sin tildes, sin puntuación).
    - **Exactamente 1 coincidencia** → usarla.
-   - **0 o más de 1** → mostrarle a Viviana las candidatas y **preguntar cuál usar**.
+   - **0 o más de 1** → mostrar las candidatas y **preguntarle a Viviana cuál usar**.
      No crear carpetas bajo ninguna circunstancia.
-2. **Subir el PDF** del deck a esa carpeta y obtener su link.
-3. **Escribir en el CRM** llamando a `registrar-cotizacion.js` con un flag nuevo
-   `--link-cotizacion <url>`; el script pasa a llenar además:
-   - `linkCotizacion` ← link del deck (label: `Cotización`)
+2. **Subir los dos archivos** a esa carpeta: el **PDF** (lo que ve el cliente) y el **PPTX**
+   (el editable, para poder retomarlo después).
+3. **Escribir en el CRM** vía `registrar-cotizacion.js` ampliado:
+   - `linkCotizacion` ← link del **PDF** (label `Cotización`)
    - `planCarbonbox` ← el plan (hueco actual)
-   - y lo que ya hacía: etapa, monto y nota.
+   - y lo que ya hacía: etapa `PROPUESTA_ENVIADA`, monto y nota.
+4. **Redactar el correo** para ese cliente (usando el contexto de la reunión) y guardarlo en el
+   campo nuevo **`borradorCorreo`** (TEXT) de la oportunidad.
+5. **Entregarle a Viviana el link** de la página de confirmación (firmado con HMAC, igual que
+   los recordatorios de seguimiento).
 
-## 4. Componente B — Capturar el correo enviado (automático, en el servidor)
+**Por qué un campo para el borrador:** la skill redacta en el PC de Viviana, pero la página la
+sirve el servidor. El campo es el puente: la skill ya tiene permiso de escritura en el CRM, no
+hace falta endpoint nuevo ni compartir secretos, y de paso el borrador queda visible en el CRM.
 
-Como el correo lo manda una persona a mano, el sistema lo busca después. Corre **dentro del
-Revisor de seguimientos** (cada 3 h), como una pasada más.
+## 4. Componente B — Enviar la cotización (página de confirmación)
 
-Para cada oportunidad en `PROPUESTA_ENVIADA`, con `linkCorreoEnviado` vacío y `linkCotizacion`
-lleno:
+Misma mecánica que los recordatorios de seguimiento (`/seguimiento`), en el mismo servidor
+(`intake_server.py`, expuesto por Caddy). Ruta nueva: `/cotizacion`.
 
-1. Buscar en el buzón `info@` mensajes **enviados** (`in:sent`) al correo del contacto **que
-   contengan el link del deck** en el cuerpo.
-2. Si aparece exactamente uno (o varios: tomar el más antiguo, que es el envío original) →
-   guardar el permalink `https://mail.google.com/mail/u/0/#all/<threadId>` en `linkCorreoEnviado`
-   (label: `Correo enviado`).
-3. Si no aparece → **no escribir nada** y reintentar en la siguiente pasada.
+La página muestra:
 
-**Por qué emparejar por el link del deck y no por destinatario:** a ese mismo contacto también
-se le envían los **recordatorios de seguimiento** desde el mismo buzón. Buscar "el último correo
-a este cliente" guardaría el recordatorio en vez de la cotización. El link del deck identifica
-el correo correcto sin ambigüedad.
+| Elemento | Detalle |
+|---|---|
+| **Para** | El contacto de la oportunidad (del CRM), no editable |
+| **CC** | Campo libre, para sumar personas que no están en el CRM |
+| **Remitente** | Lista para elegir: Viviana · Laura · Alejandra · Miguel |
+| **Asunto** | Estándar y limpio: `Cotización CarbonBox — {Empresa}` (editable) |
+| **Mensaje** | El borrador que redactó la skill, **editable** |
+| **Botón** | «Confirmar y enviar» — lo único que envía |
 
-**Límite aceptado:** depende de que el deck viaje como **link de Drive**. Si alguna vez se manda
-como adjunto, no habrá con qué emparejar y el campo quedará vacío — el sistema no adivina.
+Al confirmar:
+1. Envía por Gmail API como el remitente elegido (con copia a los CC).
+2. Guarda en `linkCorreoEnviado` el permalink del mensaje enviado
+   (`https://mail.google.com/mail/u/0/#all/<threadId>`, label `Correo enviado`).
+3. Limpia `borradorCorreo` (ya se usó).
+
+**Regla de oro:** este correo va a un cliente. El GET solo muestra; **nada se envía sin el
+botón**. Mismo criterio que los recordatorios de seguimiento.
+
+**Por qué enviar y no buscar:** la alternativa era que una persona lo enviara a mano y el
+sistema lo buscara después en el buzón. Se descartó: al mismo contacto también se le mandan
+recordatorios de seguimiento desde el mismo buzón, así que emparejar "el último correo a este
+cliente" podía guardar el recordatorio en vez de la cotización. Enviándolo nosotros, el link es
+exacto por construcción.
 
 ---
 
 ## 5. Fuera de alcance (YAGNI)
 
-- Que el sistema **envíe** el correo de cotización: lo manda una persona, y así se queda.
 - Versiones v2/v3 del deck y su historial.
 - Unificar los árboles `Leads/` y `CMR/` de Drive.
 - Asociar automáticamente los correos a los contactos dentro de Twenty (limitación conocida
-  del sync de Gmail; es un trabajo aparte).
+  del sync de Gmail; trabajo aparte).
+- Adjuntar el PDF al correo: va como link de Drive.
 
 ## 6. Riesgos
 
 - **Emparejar empresa ↔ carpeta**: los nombres difieren y hay duplicados. Mitigado preguntando
   y no creando carpetas.
-- **Falso positivo del correo**: mitigado emparejando por el link del deck, no por destinatario.
+- **Permisos del link de Drive**: si la carpeta no es visible para el cliente, el link no le
+  sirve. El flujo debe **avisar** qué permiso quedó y dejar que Viviana lo ajuste; no cambiar
+  permisos de compartición automáticamente.
 - **Token local**: `registrar-cotizacion.js` usa un token en disco (`token crm.txt` / `.env`);
   no debe entrar al repo ni pegarse en el chat. Ya está en `.gitignore`.
+- **Borrador viejo**: si se genera una cotización y no se envía, `borradorCorreo` queda con
+  texto de esa vez. Se sobrescribe en la siguiente corrida y se limpia al enviar.
