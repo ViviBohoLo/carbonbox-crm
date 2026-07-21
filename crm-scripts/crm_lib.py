@@ -77,6 +77,17 @@ def antiguedad_texto(entrada, ahora):
     n = int(round(seg / 60)); return f"{n} minuto" if n == 1 else f"{n} minutos"
 
 
+def es_licitacion(nombre):
+    """Licitaciones y estudios de mercado son procesos formales (TDR con fechas de cierre,
+    ronda de preguntas y respuestas), NO seguimiento comercial: no aplica recordatorio de venta."""
+    n = (nombre or "").lower()
+    return n.startswith("licitación") or n.startswith("licitacion") or "estudio de mercado" in n
+
+
+ACCION_LICITACION = ("Proceso de licitación: revisar las fechas del TDR (cierre, ronda de "
+                     "preguntas, respuestas). No aplica recordatorio comercial.")
+
+
 def clasificar_riesgo(opps, ahora):
     """Separa las oportunidades vencidas en (leads_sin_contacto, negocios_estancados).
     Un item entra si su etapa tiene límite y ya lo superó. LEAD_CAPTURADO va a 'leads';
@@ -94,6 +105,7 @@ def clasificar_riesgo(opps, ahora):
             continue
         micros = (o.get("amount") or {}).get("amountMicros") or 0
         valor = int(micros) / 1_000_000 if micros else 0
+        lic = es_licitacion(o["name"])
         item = {
             "id": o["id"],
             "stage": o["stage"],
@@ -102,7 +114,8 @@ def clasificar_riesgo(opps, ahora):
             "antiguedad": antiguedad_texto(entrada, ahora),
             "limite": etapa["sla_txt"],
             "valor": pesos(valor) if valor else "",
-            "accion": etapa["accion"],
+            "accion": ACCION_LICITACION if lic else etapa["accion"],
+            "licitacion": lic,
             "_orden": atraso,
         }
         (leads if o["stage"] == "LEAD_CAPTURADO" else estancados).append(item)

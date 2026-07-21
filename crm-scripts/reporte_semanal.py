@@ -52,7 +52,7 @@ def construir_reporte(opps_all, opps_open, ahora, link_fn=None):
             L.append(f"    {it['etapa']} hace {it['antiguedad']} (límite {it['limite']}).")
             if it['accion']:
                 L.append(f"    → {it['accion']}")
-            url = link_fn(it) if link_fn else None
+            url = link_fn(it) if (link_fn and not it.get("licitacion")) else None
             if url:
                 L.append(f"    ✉️ [Enviar recordatorio]({url})")
 

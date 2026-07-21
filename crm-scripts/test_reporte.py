@@ -32,6 +32,12 @@ class TestReporte(unittest.TestCase):
         body = r.construir_reporte(allo, [], AHORA)
         self.assertIn("Sin negocios en riesgo", body)
 
+    def test_licitacion_sin_enlace_y_con_accion_tdr(self):
+        allo = [_opp("PROPUESTA_ENVIADA", "Licitación - Banco Agrario", 30)]
+        body = r.construir_reporte(allo, allo, AHORA, link_fn=lambda it: "https://x.co/s")
+        self.assertNotIn("Enviar recordatorio", body)
+        self.assertIn("TDR", body)
+
     def test_enlace_recordatorio(self):
         allo = [_opp("PROPUESTA_ENVIADA", "PC System", 159)]
         body = r.construir_reporte(allo, allo, AHORA, link_fn=lambda it: "https://x.co/s?opp=" + it["id"])

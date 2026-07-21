@@ -82,6 +82,25 @@ class TestEmailHtml(unittest.TestCase):
         self.assertIn('<a href="https://x.co/s?a=1&amp;b=2">Enviar recordatorio</a>', h)
 
 
+class TestLicitacion(unittest.TestCase):
+    def test_detecta(self):
+        self.assertTrue(c.es_licitacion("Licitación - Banco Agrario de Colombia"))
+        self.assertTrue(c.es_licitacion("Licitación :HC + Huella Hídrica - Superservicios"))
+        self.assertTrue(c.es_licitacion("Estudio de mercado - Alcaldía"))
+        self.assertFalse(c.es_licitacion("HC Organizacional - Colsubsidio UMed"))
+
+    def test_riesgo_marca_y_cambia_accion(self):
+        opps = [_opp("PROPUESTA_ENVIADA", "Licitación - Banco", 30),
+                _opp("PROPUESTA_ENVIADA", "HC - ACME", 30)]
+        _, est = c.clasificar_riesgo(opps, AHORA)
+        lic = [e for e in est if e["nombre"].startswith("Licitación")][0]
+        com = [e for e in est if e["nombre"].startswith("HC")][0]
+        self.assertTrue(lic["licitacion"])
+        self.assertIn("TDR", lic["accion"])
+        self.assertFalse(com["licitacion"])
+        self.assertIn("propuesta", com["accion"].lower())
+
+
 class TestHitoAgenda(unittest.TestCase):
     def test_antes_de_3_no_dispara(self):
         self.assertEqual(c.hito_agenda(2, []), (None, []))

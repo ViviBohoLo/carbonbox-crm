@@ -7,7 +7,7 @@ from urllib.parse import urlparse, parse_qs
 import sys
 sys.path.insert(0, "/root/crm-scripts")
 from lead_intake import mapear_form, es_bot, crear_lead, RateLimiter, origen_cors, ficha_persona_html
-from crm_lib import send_notification, google_access_token, now_utc
+from crm_lib import send_notification, google_access_token, now_utc, es_licitacion
 import seguimiento as seg
 
 HOST, PORT = "127.0.0.1", 8088
@@ -65,6 +65,11 @@ class Handler(BaseHTTPRequestHandler):
             return self._html(500, seg.pagina_mensaje("Error", "No se pudo cargar el negocio.", tono="error"))
         if not opp:
             return self._html(404, seg.pagina_mensaje("No encontrado", "El negocio ya no existe."))
+        if es_licitacion(opp["name"]):
+            return self._html(200, seg.pagina_mensaje("No aplica",
+                "Este es un proceso de licitación o estudio de mercado: se rige por las fechas "
+                "del TDR (cierre, ronda de preguntas, respuestas), no por seguimiento comercial.",
+                tono="info"))
         nombre, para, empresa = seg.datos_contacto(opp)
         pl = seg.plantilla(opp["stage"], nombre=nombre, empresa=empresa, negocio=opp["name"])
         if not pl or not para:
@@ -91,6 +96,10 @@ class Handler(BaseHTTPRequestHandler):
             return self._html(403, seg.pagina_mensaje("Enlace inválido", "Enlace no válido.", tono="error"))
         try:
             opp = seg.cargar_opp(opp_id)
+            if es_licitacion(opp["name"]):
+                return self._html(200, seg.pagina_mensaje("No aplica",
+                    "Este es un proceso de licitación: se rige por las fechas del TDR, "
+                    "no por seguimiento comercial.", tono="info"))
             nombre, para, empresa = seg.datos_contacto(opp)
             pl = seg.plantilla(opp["stage"], nombre=nombre, empresa=empresa, negocio=opp["name"])
             if not pl or not para:
