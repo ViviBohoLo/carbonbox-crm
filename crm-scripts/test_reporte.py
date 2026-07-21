@@ -32,11 +32,27 @@ class TestReporte(unittest.TestCase):
         body = r.construir_reporte(allo, [], AHORA)
         self.assertIn("Sin negocios en riesgo", body)
 
-    def test_licitacion_sin_enlace_y_con_accion_tdr(self):
+    def test_licitacion_no_aparece_en_estancados(self):
         allo = [_opp("PROPUESTA_ENVIADA", "Licitación - Banco Agrario", 30)]
         body = r.construir_reporte(allo, allo, AHORA, link_fn=lambda it: "https://x.co/s")
+        self.assertNotIn("NEGOCIOS ESTANCADOS", body)
         self.assertNotIn("Enviar recordatorio", body)
-        self.assertIn("TDR", body)
+        self.assertIn("Sin etapa de licitación marcada", body)   # no desaparece
+
+    def test_bloque_licitaciones(self):
+        d = (AHORA.date() + timedelta(days=4)).isoformat()
+        lic = {"id": "L1", "name": "Licitación - Banco", "stage": "EN_NEGOCIACION",
+               "fechaEntradaEtapa": (AHORA - timedelta(days=60)).isoformat(),
+               "createdAt": (AHORA - timedelta(days=60)).isoformat(),
+               "amount": {"amountMicros": 0},
+               "etapaLicitacion": "ABIERTA", "fechaCierreLicitacion": d}
+        ev = dict(lic, id="L2", name="Licitación - Alcaldía",
+                  etapaLicitacion="EVALUACION", fechaCierreLicitacion=None)
+        body = r.construir_reporte([lic, ev], [lic, ev], AHORA)
+        self.assertIn("LICITACIONES", body)
+        self.assertIn("cierra en 4 días", body)
+        self.assertIn("En evaluación", body)
+        self.assertIn("Licitación - Alcaldía", body)
 
     def test_enlace_recordatorio(self):
         allo = [_opp("PROPUESTA_ENVIADA", "PC System", 159)]

@@ -82,6 +82,27 @@ class TestEmailHtml(unittest.TestCase):
         self.assertIn('<a href="https://x.co/s?a=1&amp;b=2">Enviar recordatorio</a>', h)
 
 
+class TestHitosConfigurables(unittest.TestCase):
+    LIC = [15, 7, 3, 1]
+
+    def test_renovacion_sigue_igual_sin_parametro(self):
+        self.assertEqual(c.hito_a_disparar(90, []), (90, [90]))
+        self.assertEqual(c.hito_a_disparar(59, [90]), (60, [90, 60]))
+
+    def test_licitacion_dispara_15(self):
+        self.assertEqual(c.hito_a_disparar(12, [], hitos=self.LIC), (15, [15]))
+
+    def test_licitacion_no_repite(self):
+        self.assertEqual(c.hito_a_disparar(10, [15], hitos=self.LIC), (None, [15]))
+
+    def test_licitacion_dispara_7_luego_3(self):
+        self.assertEqual(c.hito_a_disparar(5, [15], hitos=self.LIC), (7, [15, 7]))
+        self.assertEqual(c.hito_a_disparar(2, [15, 7], hitos=self.LIC), (3, [15, 7, 3]))
+
+    def test_licitacion_lejos_resetea(self):
+        self.assertEqual(c.hito_a_disparar(40, [15, 7], hitos=self.LIC), (None, []))
+
+
 class TestLicitacion(unittest.TestCase):
     def test_detecta(self):
         self.assertTrue(c.es_licitacion("Licitación - Banco Agrario de Colombia"))
@@ -89,16 +110,58 @@ class TestLicitacion(unittest.TestCase):
         self.assertTrue(c.es_licitacion("Estudio de mercado - Alcaldía"))
         self.assertFalse(c.es_licitacion("HC Organizacional - Colsubsidio UMed"))
 
-    def test_riesgo_marca_y_cambia_accion(self):
+    def test_riesgo_ya_no_marca_sino_que_excluye(self):
         opps = [_opp("PROPUESTA_ENVIADA", "Licitación - Banco", 30),
                 _opp("PROPUESTA_ENVIADA", "HC - ACME", 30)]
         _, est = c.clasificar_riesgo(opps, AHORA)
-        lic = [e for e in est if e["nombre"].startswith("Licitación")][0]
-        com = [e for e in est if e["nombre"].startswith("HC")][0]
-        self.assertTrue(lic["licitacion"])
-        self.assertIn("TDR", lic["accion"])
-        self.assertFalse(com["licitacion"])
-        self.assertIn("propuesta", com["accion"].lower())
+        self.assertEqual([e["nombre"] for e in est], ["HC - ACME"])
+
+
+def _lic(nombre, etapa, dias_al_cierre=None):
+    o = {"id": nombre, "name": nombre, "stage": "EN_NEGOCIACION",
+         "fechaEntradaEtapa": (AHORA - timedelta(days=60)).isoformat(),
+         "createdAt": (AHORA - timedelta(days=60)).isoformat(),
+         "amount": {"amountMicros": 0}, "etapaLicitacion": etapa,
+         "fechaCierreLicitacion": None}
+    if dias_al_cierre is not None:
+        o["fechaCierreLicitacion"] = (AHORA.date() + timedelta(days=dias_al_cierre)).isoformat()
+    return o
+
+
+class TestLicitacionCampo(unittest.TestCase):
+    def test_detecta_por_campo(self):
+        self.assertTrue(c.es_licitacion({"name": "Convenio X", "etapaLicitacion": "ABIERTA"}))
+        self.assertFalse(c.es_licitacion({"name": "HC - ACME", "etapaLicitacion": None}))
+
+    def test_respaldo_por_nombre(self):
+        self.assertTrue(c.es_licitacion({"name": "Licitación - Banco", "etapaLicitacion": None}))
+        self.assertTrue(c.es_licitacion("Licitación - Banco"))
+
+    def test_riesgo_excluye_licitaciones(self):
+        opps = [_lic("Licitación - Banco", "ABIERTA", 10),
+                _opp("PROPUESTA_ENVIADA", "HC - ACME", 30)]
+        _, est = c.clasificar_riesgo(opps, AHORA)
+        self.assertEqual([e["nombre"] for e in est], ["HC - ACME"])
+
+    def test_clasificar_licitaciones(self):
+        opps = [_lic("Lic A", "ABIERTA", 12), _lic("Lic B", "ABIERTA", 3),
+                _lic("Lic C", "ABIERTA"), _lic("Lic D", "EVALUACION"),
+                _lic("Lic E", "ADJUDICADA", 5)]
+        ab, ev, sc = c.clasificar_licitaciones(opps, AHORA.date())
+        self.assertEqual([x["nombre"] for x in ab], ["Lic B", "Lic A", "Lic C"])
+        self.assertEqual(ab[0]["dias"], 3)
+        self.assertTrue(ab[2]["sin_fecha"])
+        self.assertEqual([x["nombre"] for x in ev], ["Lic D"])
+        self.assertEqual(sc, [])
+
+    def test_licitacion_sin_etapa_no_desaparece(self):
+        """Detectada por nombre pero sin etapa marcada: sale en 'sin clasificar',
+        no se pierde entre estancados y el bloque de licitaciones."""
+        opps = [_opp("PROPUESTA_ENVIADA", "Licitación - Banco", 30)]
+        _, est = c.clasificar_riesgo(opps, AHORA)
+        ab, ev, sc = c.clasificar_licitaciones(opps, AHORA.date())
+        self.assertEqual(est, [])
+        self.assertEqual([x["nombre"] for x in sc], ["Licitación - Banco"])
 
 
 class TestHitoAgenda(unittest.TestCase):

@@ -9,7 +9,8 @@ from crm_lib import (ETAPAS, nombre_etapa, antiguedad_texto, gql,
                      get_open_opportunities, get_renewal_candidates, get_leads,
                      find_open_task_by_title, create_urgent_task, send_notification,
                      now_utc, parse_dt, hito_a_disparar, load_renov_seen, save_renov_seen,
-                     hito_agenda, load_agenda_seen, save_agenda_seen, google_access_token)
+                     hito_agenda, load_agenda_seen, save_agenda_seen, google_access_token,
+                     LICITACION_HITOS, load_licitacion_seen, save_licitacion_seen, fecha_cierre)
 from seguimiento import firmar, secreto
 from calendar_transcripts import correos_agendados
 
@@ -76,6 +77,63 @@ def revisar_renovacion(ahora):
         nuevos.append(f"  • **{nombre}** — renovación hito -{hito} (vence en {dias} días).")
     seen = {k: v for k, v in seen.items() if k in vivos}
     save_renov_seen(seen)
+    return nuevos
+
+
+def revisar_licitaciones(ahora):
+    """Licitaciones ABIERTAS: avisa a los 15/7/3/1 días del cierre (una vez cada hito).
+    Si la fecha ya pasó y sigue abierta, un único aviso para actualizar el estado
+    (centinela -1 en el estado). Las demás etapas no generan alertas."""
+    nuevos = []
+    seen = load_licitacion_seen()
+    vivos = set()
+    hoy = ahora.date()
+    for opp in get_open_opportunities():
+        if opp.get("etapaLicitacion") != "ABIERTA":
+            continue
+        cierre = fecha_cierre(opp)
+        if not cierre:
+            continue                    # sin fecha no hay nada que vigilar (sale en el reporte)
+        oid, nombre = opp["id"], opp["name"]
+        vivos.add(oid)
+        vistos = [int(x) for x in seen.get(oid, [])]
+        dias = (cierre - hoy).days
+
+        if dias < 0:
+            if -1 not in vistos:
+                title = f"⚠️ Pasó el cierre: {nombre}"
+                if not find_open_task_by_title(title):
+                    create_urgent_task(
+                        title,
+                        f"La fecha de cierre de **{nombre}** fue el "
+                        f"**{cierre.strftime('%d/%m/%Y')}** (hace {-dias} días) y la licitación "
+                        "sigue marcada como **Abierta**.\n\n"
+                        "**Acción:** actualiza la etapa de licitación — ¿se entregó? → *En "
+                        "evaluación*; ¿no se presentó? → *No adjudicada*.",
+                        oid)
+                    nuevos.append(f"  • **{nombre}** — pasó el cierre "
+                                  f"({cierre.strftime('%d/%m')}); actualiza el estado.")
+                vistos.append(-1)
+            seen[oid] = sorted(set(vistos))
+            continue
+
+        hito, actualizados = hito_a_disparar(dias, [v for v in vistos if v >= 0],
+                                             hitos=LICITACION_HITOS)
+        seen[oid] = sorted(set(actualizados))
+        if hito is None:
+            continue
+        title = f"📋 Cierre de licitación en {hito} días: {nombre}"
+        if find_open_task_by_title(title):
+            continue
+        create_urgent_task(
+            title,
+            f"La licitación **{nombre}** cierra el **{cierre.strftime('%d/%m/%Y')}** "
+            f"(faltan {dias} días).\n\n"
+            "**Acción:** revisar los TDR y preparar la entrega de la propuesta.",
+            oid)
+        nuevos.append(f"  • **{nombre}** — cierra en {dias} días ({cierre.strftime('%d/%m')}).")
+    seen = {k: v for k, v in seen.items() if k in vivos}
+    save_licitacion_seen(seen)
     return nuevos
 
 
@@ -152,6 +210,7 @@ if __name__ == "__main__":
     if modo in ("todo", "sla"):
         nuevos += revisar_sla(ahora)
         nuevos += revisar_agenda(ahora)
+        nuevos += revisar_licitaciones(ahora)
     if modo in ("todo", "renovacion"):
         nuevos += revisar_renovacion(ahora)
 

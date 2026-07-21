@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Librería compartida de los scripts cron del CRM CarbonBox."""
 import json, re, urllib.request, urllib.parse
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone, timedelta, date
 
 CORE = "http://localhost:3000/graphql"
 TOKEN_FILE = "/root/.twenty_api_token"
@@ -77,15 +77,20 @@ def antiguedad_texto(entrada, ahora):
     n = int(round(seg / 60)); return f"{n} minuto" if n == 1 else f"{n} minutos"
 
 
-def es_licitacion(nombre):
-    """Licitaciones y estudios de mercado son procesos formales (TDR con fechas de cierre,
-    ronda de preguntas y respuestas), NO seguimiento comercial: no aplica recordatorio de venta."""
+def es_licitacion(opp):
+    """True si la oportunidad es una licitación o estudio de mercado: procesos formales
+    (TDR con fecha de cierre), NO seguimiento comercial.
+
+    Acepta el nodo completo de la oportunidad (preferido: mira el campo etapaLicitacion)
+    o solo el nombre (respaldo, para las que aún no se hayan marcado en el CRM)."""
+    if isinstance(opp, dict):
+        if opp.get("etapaLicitacion"):
+            return True
+        nombre = opp.get("name")
+    else:
+        nombre = opp
     n = (nombre or "").lower()
     return n.startswith("licitación") or n.startswith("licitacion") or "estudio de mercado" in n
-
-
-ACCION_LICITACION = ("Proceso de licitación: revisar las fechas del TDR (cierre, ronda de "
-                     "preguntas, respuestas). No aplica recordatorio comercial.")
 
 
 def clasificar_riesgo(opps, ahora):
@@ -94,6 +99,8 @@ def clasificar_riesgo(opps, ahora):
     el resto a 'estancados', ordenados del más atrasado al menos."""
     leads, estancados = [], []
     for o in opps:
+        if es_licitacion(o):
+            continue                      # tienen su propio bloque y sus propias fechas
         etapa = ETAPAS.get(o["stage"])
         if not etapa or not etapa["sla"]:
             continue
@@ -105,7 +112,6 @@ def clasificar_riesgo(opps, ahora):
             continue
         micros = (o.get("amount") or {}).get("amountMicros") or 0
         valor = int(micros) / 1_000_000 if micros else 0
-        lic = es_licitacion(o["name"])
         item = {
             "id": o["id"],
             "stage": o["stage"],
@@ -114,8 +120,7 @@ def clasificar_riesgo(opps, ahora):
             "antiguedad": antiguedad_texto(entrada, ahora),
             "limite": etapa["sla_txt"],
             "valor": pesos(valor) if valor else "",
-            "accion": ACCION_LICITACION if lic else etapa["accion"],
-            "licitacion": lic,
+            "accion": etapa["accion"],
             "_orden": atraso,
         }
         (leads if o["stage"] == "LEAD_CAPTURADO" else estancados).append(item)
@@ -130,7 +135,8 @@ def get_open_opportunities():
                                  "PILOTO_45D", "PROPUESTA_ENVIADA", "EN_NEGOCIACION",
                                  "RENOVACION"] } }) {
       edges { node { id name stage fechaEntradaEtapa createdAt updatedAt
-        vencimientoContrato amount { amountMicros } } } } }""")
+        vencimientoContrato etapaLicitacion fechaCierreLicitacion
+        amount { amountMicros } } } } }""")
     return [e["node"] for e in d["opportunities"]["edges"]]
 
 
@@ -178,19 +184,23 @@ def save_renov_seen(d):
         json.dump(d, f)
 
 
-def hito_a_disparar(dias, ya_vistos):
-    """Decide si hoy toca avisar de un hito de renovación para un contrato
-    que vence en `dias` días, dados los hitos ya avisados `ya_vistos`.
+def hito_a_disparar(dias, ya_vistos, hitos=None):
+    """Decide si hoy toca avisar de un hito para algo que ocurre en `dias` días,
+    dados los hitos ya avisados `ya_vistos`.
+
+    `hitos` por defecto son los de renovación (HITOS = [90, 60, 30]); las
+    licitaciones pasan LICITACION_HITOS = [15, 7, 3, 1].
 
     Devuelve (hito_o_None, lista_actualizada_de_vistos).
     - Dispara SOLO el hito más urgente ya alcanzado (min de los alcanzados),
       una única vez por hito (idempotente entre corridas y a prueba de apagones).
     - Marca como vistos todos los hitos alcanzados (los saltados por apagón no
       se re-disparan tarde).
-    - Fuera de ventana (dias > 90) resetea: contrato renovado/empujado a futuro
-      → se re-arma para el próximo ciclo."""
+    - Fuera de ventana (dias > el hito mayor) resetea: se re-arma para el
+      próximo ciclo (contrato renovado, licitación prorrogada…)."""
+    hitos = HITOS if hitos is None else hitos
     vistos = [int(x) for x in ya_vistos]
-    alcanzados = [h for h in HITOS if dias <= h]
+    alcanzados = [h for h in hitos if dias <= h]
     if not alcanzados:
         return None, []
     nuevos = sorted(set(vistos) | set(alcanzados), reverse=True)
@@ -198,6 +208,63 @@ def hito_a_disparar(dias, ya_vistos):
     if target in vistos:
         return None, nuevos
     return target, nuevos
+
+
+# --- Licitaciones: hitos de aviso antes del cierre y estado ---
+LICITACION_HITOS = [15, 7, 3, 1]
+LICITACION_SEEN_FILE = "/root/crm-scripts/licitacion_seen.json"
+ETAPAS_LICITACION = {"ESTUDIO_MERCADO": "Estudio de mercado", "ABIERTA": "Abierta",
+                     "EVALUACION": "En evaluación", "ADJUDICADA": "Adjudicada",
+                     "NO_ADJUDICADA": "No adjudicada"}
+
+
+def load_licitacion_seen():
+    try:
+        with open(LICITACION_SEEN_FILE) as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
+
+
+def save_licitacion_seen(d):
+    with open(LICITACION_SEEN_FILE, "w") as f:
+        json.dump(d, f)
+
+
+def fecha_cierre(opp):
+    """date de fechaCierreLicitacion, o None si no está cargada."""
+    f = opp.get("fechaCierreLicitacion")
+    if not f:
+        return None
+    return date(int(f[:4]), int(f[5:7]), int(f[8:10]))
+
+
+def clasificar_licitaciones(opps, hoy):
+    """(abiertas, en_evaluacion, sin_clasificar) para el reporte.
+
+    Las abiertas van de la más urgente a la menos; las que no tienen fecha de cierre
+    cargada quedan al final. `sin_clasificar` son las que se detectan como licitación
+    (por el nombre) pero aún no tienen etapa marcada: si no se listaran, quedarían
+    invisibles — fuera de 'estancados' y fuera de este bloque."""
+    abiertas, evaluacion, sin_clasificar = [], [], []
+    for o in opps:
+        et = o.get("etapaLicitacion")
+        if not et:
+            if es_licitacion(o):
+                sin_clasificar.append({"nombre": o["name"]})
+            continue
+        if et == "ABIERTA":
+            f = fecha_cierre(o)
+            abiertas.append({
+                "id": o["id"], "nombre": o["name"],
+                "dias": (f - hoy).days if f else None,
+                "fecha": f.strftime("%d/%m") if f else None,
+                "sin_fecha": f is None,
+            })
+        elif et == "EVALUACION":
+            evaluacion.append({"nombre": o["name"]})
+    abiertas.sort(key=lambda x: (x["dias"] is None, x["dias"] if x["dias"] is not None else 0))
+    return abiertas, evaluacion, sin_clasificar
 
 
 # --- Recordatorio de agenda: leads que no agendaron la llamada (día 3 y 6) ---

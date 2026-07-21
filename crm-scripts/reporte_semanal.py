@@ -3,7 +3,7 @@
 Conteo/valor por etapa + leads sin contactar + negocios estancados, por email."""
 import sys
 sys.path.insert(0, "/root/crm-scripts")
-from crm_lib import (ETAPAS, nombre_etapa, pesos, clasificar_riesgo,
+from crm_lib import (ETAPAS, nombre_etapa, pesos, clasificar_riesgo, clasificar_licitaciones,
                      get_all_opportunities, get_open_opportunities,
                      send_notification, now_utc)
 
@@ -52,12 +52,35 @@ def construir_reporte(opps_all, opps_open, ahora, link_fn=None):
             L.append(f"    {it['etapa']} hace {it['antiguedad']} (límite {it['limite']}).")
             if it['accion']:
                 L.append(f"    → {it['accion']}")
-            url = link_fn(it) if (link_fn and not it.get("licitacion")) else None
+            url = link_fn(it) if link_fn else None
             if url:
                 L.append(f"    ✉️ [Enviar recordatorio]({url})")
 
     if not en_riesgo:
         L += ["", "✅ Sin negocios en riesgo esta semana."]
+
+    abiertas, evaluacion, sin_clasificar = clasificar_licitaciones(opps_open, ahora.date())
+    if abiertas or evaluacion or sin_clasificar:
+        total_lic = len(abiertas) + len(evaluacion) + len(sin_clasificar)
+        L += ["", f"**── 📋 LICITACIONES ({total_lic}) ──**"]
+        if abiertas:
+            L.append("Abiertas (ojo con la fecha de cierre):")
+            for it in abiertas:
+                if it["sin_fecha"]:
+                    L.append(f"  • **{it['nombre']}** — ⚠️ sin fecha de cierre cargada")
+                elif it["dias"] < 0:
+                    L.append(f"  • **{it['nombre']}** — cerró hace {-it['dias']} días "
+                             f"({it['fecha']}); actualiza el estado")
+                else:
+                    L.append(f"  • **{it['nombre']}** — cierra en {it['dias']} días ({it['fecha']})")
+        if evaluacion:
+            L.append("En evaluación (esperando resultado):")
+            for it in evaluacion:
+                L.append(f"  • **{it['nombre']}**")
+        if sin_clasificar:
+            L.append("⚠️ Sin etapa de licitación marcada (márcala para que se vigile la fecha):")
+            for it in sin_clasificar:
+                L.append(f"  • **{it['nombre']}**")
 
     L += ["", "**── METAS DEL MES ──**",
           "  25 MQL · 10 demos · 5-6 propuestas · 3-4 cierres",
