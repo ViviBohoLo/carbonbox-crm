@@ -33,9 +33,18 @@ toca código. Los `generador-<cliente>.js` sueltos son del flujo anterior.
 5. Renderizar:
    ```bash
    node Generadores/render.js "Cotizaciones/<Cliente>/contenido.yml"
-   bash Generadores/render-pdf.sh "Cotizaciones/<Cliente>/<archivo>.pptx"
    ```
    El `.pptx` queda junto al `.yml`. Un 2º argumento opcional elige otra ruta de salida.
+
+   Y a PDF, según lo que tengas instalado:
+   ```bash
+   # Windows con Office (no requiere instalar nada):
+   powershell -File Generadores/render-pdf.ps1 "Cotizaciones/<Cliente>/<archivo>.pptx" -Png
+   # Linux/Mac o Windows con LibreOffice:
+   bash Generadores/render-pdf.sh "Cotizaciones/<Cliente>/<archivo>.pptx"
+   ```
+   El flag `-Png` exporta además cada slide como imagen a `_png/`, para revisar el diseño
+   (desbordes de texto, tipografías) sin abrir Office.
 6. QA con el checklist de `Insumos/instrucciones.md` (NIT presente, fecha completa, precio USD,
    "exentos" bien escrito, mensual = precio÷12, fecha límite = envío + 60 días, cronograma
    acorde al plan). Iterar editando el YAML y volviendo a renderizar.
@@ -56,4 +65,5 @@ node --test "Generadores/test/*.test.js"
 
 - Node 18+ (`npm install` en la raíz). El 18+ es obligatorio: `registrar-cotizacion.js` usa `fetch` incorporado.
 - Python + Pillow (`pip install pillow`) para `generador-cover.py`.
-- LibreOffice (`soffice`) para exportar a PDF.
+- Para el PDF: **PowerPoint** (vía `render-pdf.ps1`, en Windows) **o** LibreOffice
+  (`soffice`, vía `render-pdf.sh`). Basta con uno de los dos.

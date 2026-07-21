@@ -94,8 +94,13 @@ Confirma el **tipo de huella**: **organizacional** (empresa, por sector+empleado
    Luego:
    ```
    node Generadores/render.js "Cotizaciones/<Cliente>/contenido.yml"
-   bash Generadores/render-pdf.sh "Cotizaciones/<Cliente>/<archivo>.pptx"
+   powershell -File Generadores/render-pdf.ps1 "Cotizaciones/<Cliente>/<archivo>.pptx" -Png
    ```
+   **En la máquina de Viviana no hay LibreOffice**, así que `render-pdf.sh` no corre; usa
+   el `.ps1`, que exporta con PowerPoint. El flag `-Png` deja cada slide como imagen en
+   `_png/` — **ábrelas y revisa el diseño de verdad** antes de dar la cotización por lista:
+   desbordes de texto, tipografías sustituidas, imágenes fuera de lugar. Verificar el texto
+   por dentro del `.pptx` no sustituye ver la slide renderizada.
 
 7. **Mostrar el resultado** (.pptx + .pdf) y repasar el **checklist de calidad** de
    `instrucciones.md` (NIT presente, fecha completa, precio USD confirmado, "exentos" bien
