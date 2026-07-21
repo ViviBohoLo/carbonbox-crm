@@ -2,7 +2,19 @@
 
 El skill `/cotizar` (Task 8) lee de cada oportunidad un enlace a la transcripción de la
 reunión de ventas (en Drive). Para eso, el objeto **Opportunity** de Twenty necesita un
-campo personalizado `linkTranscripcion` (tipo TEXT). Esto se crea **una sola vez**.
+campo personalizado `linkTranscripcion` de tipo **LINKS**. Esto se crea **una sola vez**.
+
+> ✅ **En `crm.carbonbox.app` este campo YA EXISTE** (verificado 2026-07-21) y es de tipo
+> `Links`. Este instructivo solo aplica si hay que recrearlo o montarlo en otro Twenty.
+>
+> Al ser tipo `Links`, en GraphQL **no se lee como texto plano**: hay que pedir sus
+> subcampos. Así:
+>
+> ```graphql
+> linkTranscripcion { primaryLinkUrl primaryLinkLabel secondaryLinks }
+> ```
+>
+> La URL está en `primaryLinkUrl`. Pedir `linkTranscripcion` a secas falla.
 
 > ⚠️ Este paso toca la metadata del CRM en producción (`crm.carbonbox.app`). Requiere el
 > token de API de Twenty, que vive en el VPS (`/root/.twenty_api_token`) y **no** está en el
@@ -21,11 +33,11 @@ curl -s -H "Authorization: Bearer $TK" \
   | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['data']['objects'][0]['id'])"
 # → copia el id que imprime (OBJ_ID)
 
-# 3) Crear el campo linkTranscripcion (tipo TEXT)
+# 3) Crear el campo linkTranscripcion (tipo LINKS)
 OBJ_ID="<pega_aqui_el_OBJ_ID>"
 curl -s -X POST -H "Authorization: Bearer $TK" -H "Content-Type: application/json" \
   "http://localhost:3000/rest/metadata/fields" \
-  -d "{\"name\":\"linkTranscripcion\",\"label\":\"Link transcripción\",\"type\":\"TEXT\",\"objectMetadataId\":\"$OBJ_ID\",\"description\":\"URL de la transcripción de la reunión de ventas (Drive)\"}"
+  -d "{\"name\":\"linkTranscripcion\",\"label\":\"Link transcripción\",\"type\":\"LINKS\",\"objectMetadataId\":\"$OBJ_ID\",\"description\":\"URL de la transcripción de la reunión de ventas (Drive)\"}"
 
 # 4) Verificar que quedó
 curl -s -H "Authorization: Bearer $TK" \
@@ -38,7 +50,7 @@ Opportunity. Tras crearlo, aparece como columna editable en cada oportunidad del
 ## Opción B — desde la interfaz de Twenty
 
 Configuración → Objetos → **Oportunidades** → Campos → **Añadir campo** →
-Tipo **Texto**, Nombre **Link transcripción** (API name: `linkTranscripcion`) → Guardar.
+Tipo **Enlaces (Links)**, Nombre **Link transcripción** (API name: `linkTranscripcion`) → Guardar.
 
 ## Notas
 

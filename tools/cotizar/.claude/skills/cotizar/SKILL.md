@@ -23,13 +23,42 @@ Confirma el **tipo de huella**: **organizacional** (empresa, por sector+empleado
 
 1. **Leer la oportunidad del CRM.** Recibe el nombre o ID de la oportunidad. Consulta Twenty
    (GraphQL en `https://crm.carbonbox.app/graphql`, token local — ver
-   `Generadores/registrar-cotizacion.js` para el patrón de auth; NUNCA pedir el token por chat)
-   y extrae: empresa, **NIT**, sector, plan recomendado, país/ciudad, contacto, y
-   `linkTranscripcion`. Si el campo `linkTranscripcion` no existe aún, ver
-   `Generadores/_setup/crear-campo-transcripcion.md`.
+   `Generadores/registrar-cotizacion.js` para el patrón de auth; NUNCA pedir el token por chat).
+
+   **El NIT y el sector viven en la EMPRESA, no en la oportunidad.** El campo
+   `Opportunity.idTributario` existe pero está vacío; el NIT real es `Company.nit`.
+   `linkTranscripcion` es de tipo `Links`: hay que pedir sus subcampos o la query falla.
+   Query verificada (2026-07-21):
+
+   ```graphql
+   opportunities(filter: { name: { ilike: "%<cliente>%" } }, first: 3) {
+     edges { node {
+       id name stage planCarbonbox paisNegocio
+       amount { amountMicros currencyCode }
+       linkTranscripcion { primaryLinkUrl }
+       company { name nit sector pais }
+       pointOfContact { name { firstName lastName } emails { primaryEmail } }
+     } } }
+   ```
+
+   Si el campo `linkTranscripcion` no existe, ver `Generadores/_setup/crear-campo-transcripcion.md`.
 
 2. **Transcripción.** Si falta `linkTranscripcion`, pídelo por chat. Con el link, lee la
-   transcripción desde Drive (conector Drive).
+   transcripción desde Drive.
+
+   **Usa el Drive de Composio**, toolkit `googledrive`, cuenta con alias **`carbonbox`**
+   (`info@carbonbox.app`) — es la dueña de los documentos. El conector de Drive integrado
+   apunta a otra cuenta (`info@kimsa.co`) y **no ve estos archivos**: da "Requested entity
+   was not found", que parece un link roto pero es un problema de permisos.
+
+   Para un Google Doc: `GOOGLEDRIVE_DOWNLOAD_FILE` con `mime_type: "text/plain"` (el toolkit
+   `googledocs` no tiene conexión activa). Devuelve una `s3url` temporal; descárgala enseguida.
+   **La transcripción es dato de cliente: guárdala fuera del repo, nunca la commitees.**
+
+   ⚠️ Si el documento son "Notas de Gemini", **el resumen del comienzo no es confiable** —
+   lee la transcripción literal. Caso real: el resumen de WOM afirmaba "Plan Pro por un valor
+   de 1000 dólares" cuando en la reunión "1000" era la *categoría de tamaño de empresa*, no
+   el precio. Cotizar desde el resumen habría producido una cotización con el precio errado.
 
 3. **Extraer campos** de `Insumos/instrucciones.md` (num_empleados, tipo_servicio, atica,
    motivación, decisor, stakeholders, contexto, necesidad) desde la transcripción. Lo que
@@ -42,6 +71,22 @@ Confirma el **tipo de huella**: **organizacional** (empresa, por sector+empleado
    - Organizacional: `python3 Generadores/calcular-precio.py --sector "<sector>" --empleados <n> --plan <esencial|pro|experto> --json`
    - Evento: `python3 Generadores/calcular-precio-eventos.py --tipo-evento "<tipo>" --num-asistentes <n> --plan <...> --json` *(si aún no tiene --json, usar la salida normal)*
    El JSON trae `precio_final`, `precio_mensual`, `precio_atica`, `precio_mensual_atica`.
+
+   **El sector del CRM no es el de la calculadora.** `Company.sector` usa el vocabulario del
+   CRM (p. ej. "Telecomunicaciones"); la calculadora espera una de las categorías de
+   `Insumos/reglas-precio.md` (ahí "Telecomunicaciones" → **"Comunicaciones"**, de la fila
+   "Comunicaciones / Financiero y seguros"). **Verifica el mapeo contra `reglas-precio.md`
+   antes de calcular**; si ninguna categoría encaja claramente, pregunta. Un mapeo errado
+   cambia el precio en silencio.
+
+   ⚠️ **Precio ya prometido al cliente = manda sobre la calculadora.** Si en la reunión se
+   pactó un valor o una categoría distinta a la que sale por número de empleados, **usa lo
+   pactado** y escribe la razón en el `contenido.yml` (con la cita y el timestamp de la
+   transcripción). Recalcular a ciegas produce una cotización que contradice lo que el
+   cliente ya oyó. Caso real: a WOM (1.072 empleados → categoría 1500, $2.282) se le cotizó
+   a propósito en la categoría 1000 ($1.937) — *"para no subirte a 1500, digamos hagámoslo
+   en 1000"* (00:36:22). Ante cualquier diferencia entre lo pactado y lo calculado,
+   **muéstrale ambos números a Viviana y deja que ella decida.**
 
 6. **Escribir `Cotizaciones/<Cliente>/contenido.yml`** (formato de
    `Cotizaciones/_Plantilla/contenido.ejemplo.yml`) con encabezado (cliente, **nit**, sector,
