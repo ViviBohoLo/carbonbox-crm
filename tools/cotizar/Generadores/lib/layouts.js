@@ -163,9 +163,13 @@ function casoExito(p, slide, ctx) {
   const caso = parseCaso(ctx.casos[clave] || ctx.casos["sector_generico_latam"] || "");
   const parrafo = (caso.titulo ? caso.titulo + ". " : "") + caso.cuerpo;
   s.addText(parrafo || "[⚠️ PENDIENTE: caso de éxito]", { x: B.MX, y: 2.7, w: 11.6, h: 1.5, fontFace: B.F, fontSize: 15.5, color: B.INK2, lineSpacingMultiple: 1.3 });
-  B.card(s, B.MX, 4.6, 11.75, 1.2, B.PSOFT, B.P100);
-  s.addShape(p.shapes.RECTANGLE, { x: B.MX, y: 4.6, w: 0.07, h: 1.2, fill: { color: B.ACC } });
-  s.addText("“" + (caso.quote || "") + "”", { x: B.MX + 0.35, y: 4.6, w: 11.1, h: 1.2, fontFace: B.F, fontSize: 16, italic: true, bold: true, color: B.P, valign: "middle" });
+  // Sin cita no se dibuja la tarjeta: antes salía un “” vacío (p. ej. con
+  // sector_generico_latam, que es el único caso de Insumos/casos-exito.md sin cita).
+  if (caso.quote) {
+    B.card(s, B.MX, 4.6, 11.75, 1.2, B.PSOFT, B.P100);
+    s.addShape(p.shapes.RECTANGLE, { x: B.MX, y: 4.6, w: 0.07, h: 1.2, fill: { color: B.ACC } });
+    s.addText("“" + caso.quote + "”", { x: B.MX + 0.35, y: 4.6, w: 11.1, h: 1.2, fontFace: B.F, fontSize: 16, italic: true, bold: true, color: B.P, valign: "middle" });
+  }
   if (caso.cierre) s.addText(caso.cierre, { x: B.MX, y: 5.95, w: 11.5, h: 0.3, fontFace: B.F, fontSize: 12, color: B.INK3 });
   B.footer(s, ctx.cliente);
   return s;
