@@ -64,12 +64,24 @@ async function gql(query, variables = {}) {
   return out.data;
 }
 
-async function findOrCreateCompany(nombre) {
+// El NIT se guarda en Company.nit, que es de donde lo lee el flujo /cotizar al preparar
+// la siguiente cotización. Antes solo quedaba escrito dentro del texto de la nota, así que
+// una empresa creada por este script quedaba sin NIT utilizable.
+async function findOrCreateCompany(nombre, nit) {
   let d = await gql(`query($n: String!) { companies(filter:{name:{ilike:$n}}, first:1) {
-      edges { node { id name } } } }`, { n: nombre });
-  if (d.companies.edges.length) return d.companies.edges[0].node.id;
-  d = await gql(`mutation($data: CompanyCreateInput!) { createCompany(data:$data) { id } }`,
-    { data: { name: nombre } });
+      edges { node { id name nit } } } }`, { n: nombre });
+  if (d.companies.edges.length) {
+    const c = d.companies.edges[0].node;
+    // Si ya tiene NIT no lo pisamos: el del CRM manda sobre el que venga por argumento.
+    if (nit && !c.nit) {
+      await gql(`mutation($id: UUID!, $data: CompanyUpdateInput!) {
+          updateCompany(id:$id, data:$data) { id } }`, { id: c.id, data: { nit } });
+    }
+    return c.id;
+  }
+  const data = { name: nombre };
+  if (nit) data.nit = nit;
+  d = await gql(`mutation($data: CompanyCreateInput!) { createCompany(data:$data) { id } }`, { data });
   return d.createCompany.id;
 }
 
@@ -108,7 +120,7 @@ async function agregarNota(oppId, texto) {
 }
 
 async function registrarCotizacion({ cliente, nit, plan, precio, servicio, nota }) {
-  const companyId = await findOrCreateCompany(cliente);
+  const companyId = await findOrCreateCompany(cliente, nit);
   const existente = await findOpenOpportunity(companyId);
 
   let oppId, accion;
