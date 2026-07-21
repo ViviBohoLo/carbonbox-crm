@@ -22,11 +22,13 @@ toca código. Los `generador-<cliente>.js` sueltos son del flujo anterior.
 
 1. Confirmar el tipo de huella: **organizacional** (empresa) o **evento** — son calculadoras
    distintas. Reglas y estructura en `Insumos/instrucciones.md`.
-2. Leer la oportunidad en el CRM (empresa, NIT, sector, plan, `linkTranscripcion`) y, con ese
-   link, la transcripción de la reunión en Drive. Si el campo no existe, ver
-   `Generadores/_setup/crear-campo-transcripcion.md`.
-3. Calcular el precio — **determinístico, no estimar**:
-   - Organizacional: `python3 Generadores/calcular-precio.py --sector "…" --empleados N --plan pro --json`
+2. Leer la oportunidad en el CRM (empresa, NIT, `sectorCarbonbox`, `numEmpleados`, plan,
+   `linkTranscripcion`) y, con ese link, la transcripción de la reunión en Drive. Si el campo
+   no existe, ver `Generadores/_setup/crear-campo-transcripcion.md`.
+3. Calcular el precio — **determinístico, no estimar**. El sector se pasa con el **código del
+   CRM** (`Company.sectorCarbonbox`, ej. `MINERIA`): la calculadora lo resuelve con su tabla
+   `SECTOR_CRM`, así no hay que traducir a mano el sector viejo de HubSpot.
+   - Organizacional: `python3 Generadores/calcular-precio.py --sector MINERIA --empleados N --plan pro --json`
    - Evento: `python3 Generadores/calcular-precio-eventos.py --tipo-evento "…" --num-asistentes N --plan pro --json`
 4. Escribir `Cotizaciones/<Cliente>/contenido.yml` con los datos y los 4 precios del JSON.
    Formato de referencia: `Cotizaciones/_Plantilla/contenido.ejemplo.yml`.

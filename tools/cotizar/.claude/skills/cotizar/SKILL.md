@@ -36,7 +36,7 @@ Confirma el **tipo de huella**: **organizacional** (empresa, por sector+empleado
        id name stage planCarbonbox paisNegocio
        amount { amountMicros currencyCode }
        linkTranscripcion { primaryLinkUrl }
-       company { name nit sector pais }
+       company { name nit sectorCarbonbox numEmpleados sector pais }
        pointOfContact { name { firstName lastName } emails { primaryEmail } }
      } } }
    ```
@@ -60,7 +60,8 @@ Confirma el **tipo de huella**: **organizacional** (empresa, por sector+empleado
    de 1000 dólares" cuando en la reunión "1000" era la *categoría de tamaño de empresa*, no
    el precio. Cotizar desde el resumen habría producido una cotización con el precio errado.
 
-3. **Extraer campos** de `Insumos/instrucciones.md` (num_empleados, tipo_servicio, atica,
+3. **Extraer campos** de `Insumos/instrucciones.md` (num_empleados —solo si el CRM no lo
+   trae, ver paso 5—, tipo_servicio, atica,
    motivación, decisor, stakeholders, contexto, necesidad) desde la transcripción. Lo que
    falte → `[⚠️ PENDIENTE]` o pregunta. **No inventar datos.**
 
@@ -72,12 +73,19 @@ Confirma el **tipo de huella**: **organizacional** (empresa, por sector+empleado
    - Evento: `python3 Generadores/calcular-precio-eventos.py --tipo-evento "<tipo>" --num-asistentes <n> --plan <...> --json` *(si aún no tiene --json, usar la salida normal)*
    El JSON trae `precio_final`, `precio_mensual`, `precio_atica`, `precio_mensual_atica`.
 
-   **El sector del CRM no es el de la calculadora.** `Company.sector` usa el vocabulario del
-   CRM (p. ej. "Telecomunicaciones"); la calculadora espera una de las categorías de
-   `Insumos/reglas-precio.md` (ahí "Telecomunicaciones" → **"Comunicaciones"**, de la fila
-   "Comunicaciones / Financiero y seguros"). **Verifica el mapeo contra `reglas-precio.md`
-   antes de calcular**; si ninguna categoría encaja claramente, pregunta. Un mapeo errado
-   cambia el precio en silencio.
+   **Sector y empleados salen del CRM — no los traduzcas a mano.**
+
+   - **Sector:** usa `Company.sectorCarbonbox`, que ya guarda una de las 20 categorías de la
+     calculadora. Pásale el **código tal cual** (`--sector MINERIA`, `--sector TRANSPORTE`…):
+     `calcular-precio.py` lo resuelve con su tabla `SECTOR_CRM`. **No uses `Company.sector`**
+     (ese es el vocabulario viejo de HubSpot, texto libre, y traducirlo a ojo cambiaba el
+     precio en silencio). Tampoco copies la *etiqueta* del CRM: Twenty no admite comas, así
+     que 6 etiquetas no son idénticas al nombre interno — por eso se pasa el código.
+     Si `sectorCarbonbox` está vacío, **pregunta a Viviana cuál corresponde** y pídele que lo
+     cargue en la empresa; no lo adivines a partir de `Company.sector`.
+   - **Empleados:** usa `Company.numEmpleados` (número real; la calculadora lo normaliza sola
+     a su categoría). Si está vacío, sácalo de la transcripción y **avísale a Viviana para que
+     quede cargado** en la empresa, así la próxima cotización es repetible.
 
    ⚠️ **Precio ya prometido al cliente = manda sobre la calculadora.** Si en la reunión se
    pactó un valor o una categoría distinta a la que sale por número de empleados, **usa lo

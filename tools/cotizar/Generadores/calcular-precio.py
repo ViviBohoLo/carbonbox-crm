@@ -299,6 +299,42 @@ ACOMPANAMIENTO_AUDITORIA = {
 # Tamaños válidos (en el mismo orden que la web)
 TAMANOS_VALIDOS = ["10 o menos", "50", "70", "100", "150", "200", "500", "1000", "1500", "2000"]
 
+# Códigos del campo `sectorCarbonbox` (Company, CRM Twenty) → nombre del sector en SECTORES.
+# Twenty NO admite comas en las etiquetas de un SELECT, así que sus etiquetas no pueden ser
+# idénticas a las de aquí. Pasar el CÓDIGO evita traducir a mano en cada cotización, que es
+# donde antes se colaban errores de precio silenciosos.
+# Mantener sincronizado con las opciones del campo sectorCarbonbox.
+SECTOR_CRM = {
+    "MINERIA": "Mineria (extracción de petroleo, gas y minerales)",
+    "INDUSTRIA_MANUFACTURERA": "Industria manufacturera",
+    "CONSTRUCCION": "Construcción",
+    "ENERGIA": "Energia (transformación de la energía)",
+    "AGROINDUSTRIA": "Agroindustria",
+    "AGROPECUARIO": "Agropecuario (agricultura y ganaderia)",
+    "SILVICULTURA": "Silvicultura (aprovechamiento forestal)",
+    "RETAIL_ECOMMERCE": "Distribuidores (Retail) & E-commerce",
+    "TURISMO": "Turismo",
+    "ADMIN_PUBLICA": "Administración pública",
+    "EDUCACION": "Educación",
+    "INSTITUCIONAL": "Institucional",
+    "SALUD": "Salud",
+    "TECNOLOGIA": "Tecnología",
+    "TRANSPORTE": "Transporte, movilidad y logística",
+    "COMUNICACIONES": "Comunicaciones",
+    "FINANCIERO": "Financiero y seguros",
+    "ENTRETENIMIENTO": "Entretenimiento y cultura",
+    "CONSULTORIA": "Consultoría y prestación de servicios",
+    "EMPRENDIMIENTOS": "Emprendimientos",
+}
+
+
+def resolver_sector(sector: str) -> str:
+    """Acepta el código del CRM (`sectorCarbonbox`, ej. 'MINERIA') o el nombre literal
+    del sector. Devuelve siempre el nombre que entiende SECTORES."""
+    if not sector:
+        return sector
+    return SECTOR_CRM.get(sector.strip().upper(), sector)
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # FUNCIÓN PRINCIPAL DE CÁLCULO
@@ -311,7 +347,7 @@ def calcular_precio(plan: str, sector: str, tamano: str) -> dict:
 
     Args:
         plan: "esencial", "pro" o "experto"
-        sector: nombre del sector (ver SECTORES)
+        sector: nombre del sector (ver SECTORES) o código del CRM (ver SECTOR_CRM)
         tamano: categoría de tamaño (ver TAMANOS_VALIDOS)
 
     Returns:
@@ -320,6 +356,7 @@ def calcular_precio(plan: str, sector: str, tamano: str) -> dict:
     if tamano == ">2000":
         return {"error": "Más de 2.000 empleados → Cotización personalizada. Contactar al equipo comercial."}
 
+    sector = resolver_sector(sector)
     sector_data = SECTORES.get(sector)
     if not sector_data:
         sectores_disponibles = "\n  ".join(SECTORES.keys())

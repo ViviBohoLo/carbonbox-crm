@@ -24,5 +24,48 @@ def test_json_error_exit1():
     assert "error" in json.loads(r.stdout)
 
 
+def test_codigo_crm_equivale_al_nombre_literal():
+    """El código de `sectorCarbonbox` debe dar el mismo precio que el nombre literal."""
+    a = json.loads(run(["--sector", "COMUNICACIONES", "--empleados", "1072",
+                        "--plan", "pro", "--json"]).stdout)
+    b = json.loads(run(["--sector", "Comunicaciones", "--empleados", "1072",
+                        "--plan", "pro", "--json"]).stdout)
+    assert a["precio_final"] == b["precio_final"]
+    assert a["sector"] == b["sector"] == "Comunicaciones"
+
+
+def test_codigos_crm_con_etiqueta_distinta():
+    """Los 6 sectores cuya etiqueta en el CRM NO coincide literalmente (comas, tildes, &)."""
+    casos = {
+        "MINERIA": 1845, "ENERGIA": 1476, "AGROPECUARIO": 1230,
+        "SILVICULTURA": 1230, "RETAIL_ECOMMERCE": 1230, "TRANSPORTE": 984,
+    }
+    for codigo, base in casos.items():
+        r = run(["--sector", codigo, "--empleados", "10", "--plan", "esencial", "--json"])
+        assert r.returncode == 0, f"{codigo}: {r.stdout}{r.stderr}"
+        d = json.loads(r.stdout)
+        assert d["precio_final"] > 0, codigo
+        # con 10 empleados pct_empleados=0, así que el precio parte de la base del sector
+        assert d["precio_final"] >= base, f"{codigo}: {d['precio_final']} < base {base}"
+
+
+def test_los_20_codigos_resuelven():
+    sys.path.insert(0, BASE)
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("cp", os.path.join(BASE, "calcular-precio.py"))
+    cp = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(cp)
+    assert len(cp.SECTOR_CRM) == 20
+    for codigo, nombre in cp.SECTOR_CRM.items():
+        assert nombre in cp.SECTORES, f"{codigo} apunta a un sector inexistente: {nombre}"
+        assert cp.resolver_sector(codigo) == nombre
+    # un nombre literal pasa derecho
+    assert cp.resolver_sector("Industria manufacturera") == "Industria manufacturera"
+
+
 if __name__ == "__main__":
-    test_json_ok(); test_json_error_exit1(); print("OK")
+    test_json_ok(); test_json_error_exit1()
+    test_codigo_crm_equivale_al_nombre_literal()
+    test_codigos_crm_con_etiqueta_distinta()
+    test_los_20_codigos_resuelven()
+    print("OK")
