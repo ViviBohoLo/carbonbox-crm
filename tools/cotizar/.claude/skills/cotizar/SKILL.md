@@ -168,19 +168,27 @@ Confirma el **tipo de huella**: **organizacional** (empresa, por sector+empleado
    - Usa el Drive de Composio con la cuenta alias **`carbonbox`** (`info@carbonbox.app`),
      igual que para leer transcripciones.
 
-   > ⚠️ **Subir NO funciona hoy como está escrito** (verificado 2026-07-21).
-   > `GOOGLEDRIVE_UPLOAD_FILE` pide un `s3key` —bytes ya guardados en el almacenamiento de
-   > Composio—, **no una ruta local**: pasarle la ruta del `.pdf` falla con *"file does not
-   > exist in storage"*. Y `GOOGLEDRIVE_UPLOAD_FROM_URL` necesita una URL pública, que el
-   > deck no tiene. Con Drive se puede **leer** pero no **subir desde el disco**.
+   > ⚠️ **Subir NO se puede con Composio; se sube por el VPS.** Verificado el 2026-07-21:
+   > `GOOGLEDRIVE_UPLOAD_FILE` y `GOOGLEDRIVE_CREATE_FILE` piden un `s3key` —bytes ya
+   > guardados en el almacenamiento de Composio—, **no una ruta local**, y
+   > `UPLOAD_FROM_URL` necesita una URL pública. Con Composio se **lee** Drive, no se sube
+   > desde el disco. (No es problema de cuenta: Composio sí es `info@carbonbox.app`.)
    >
-   > Mientras no se arregle: **pídele a Viviana que arrastre el `.pdf` y el `.pptx`** a la
-   > carpeta (dale las rutas completas) y que te pase el link del PDF. No es lo ideal, pero
-   > es honesto: no prometas una subida que no puedes hacer.
+   > El VPS sí puede: su token de Google incluye el permiso `auth/drive` sobre esa misma
+   > cuenta. Para eso está **`crm-scripts/subir_deck.py`**:
    >
-   > Arreglo de fondo pendiente: el VPS sí tiene credenciales de Google
-   > (`crm_lib.google_access_token()`, las mismas del envío por Gmail). Copiando el deck allá
-   > por `scp`, el servidor podría subirlo a Drive y devolver el link.
+   > ```bash
+   > scp -i ~/.ssh/hostinger_vps "<ruta>/<deck>.pdf" root@72.60.125.170:/tmp/
+   > ssh -i ~/.ssh/hostinger_vps root@72.60.125.170 \
+   >   'cd /root/crm-scripts && python3 subir_deck.py /tmp/<deck>.pdf <ID_CARPETA>'
+   > ```
+   >
+   > Imprime el `webViewLink`. Repetir para el `.pptx` y **borrar los temporales de `/tmp`**
+   > al terminar.
+   >
+   > ⚠️ **Los archivos suben privados.** Revisa los permisos con `GOOGLEDRIVE_LIST_PERMISSIONS`:
+   > si solo aparece el `owner`, el cliente **no podrá abrir el link**. Avísale a Viviana para
+   > que le dé acceso. **No cambies los permisos tú.**
    - **Revisa qué permiso quedó** en el link del PDF y avísale a Viviana si el cliente no va a
      poder abrirlo. **No cambies permisos de compartición por tu cuenta**: puedes exponer
      material de otros clientes sin querer.
