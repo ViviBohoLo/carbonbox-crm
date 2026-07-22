@@ -1,0 +1,28 @@
+{
+  "slug": "yauto-sas",
+  "activo": true,
+  "titulo": "Compensaciones que sí suman: cómo saber si un crédito de carbono es real y transparente",
+  "invitado": "Yauto SAS",
+  "fecha_hora": "2026-07-31T15:00:00-05:00",
+  "zona_texto": "hora Colombia",
+  "meet_link": "https://meet.google.com/jbz-fjpb-wfa",
+  "add_to_calendar_link": "https://calendar.google.com/calendar/render?action=TEMPLATE&text=Webinar%3A%20c%C3%B3mo%20saber%20si%20un%20cr%C3%A9dito%20de%20carbono%20es%20real%20y%20transparente&dates=20260731T200000Z/20260731T210000Z&ctz=America/Bogota&details=%C3%9Anete%20por%20Google%20Meet%3A%20https%3A%2F%2Fmeet.google.com%2Fjbz-fjpb-wfa&location=https%3A%2F%2Fmeet.google.com%2Fjbz-fjpb-wfa",
+  "form_url": "https://docs.google.com/forms/d/12T0Bns79HXe-4dPgALdl20uDwQO7JJ0WtSKBztn5FU0/viewform",
+  "sheet_id": "1c4exmfUU_jdRCHhiQo8VjXCwgoZ5nnw-znURuXzeFSQ",
+  "sheet_rango": "Respuestas de formulario 1!A:Z",
+  "columnas": {
+    "email": "Correo electrónico al que recibirás el enlace para unirte",
+    "nombre": "Nombre",
+    "apellido": "Apellido",
+    "tel": "Número de teléfono",
+    "empresa": "Nombre de la empresa",
+    "cargo": "Cargo",
+    "acepta_marketing": "Quiero recibir contenidos de CarbonBox sobre medición y compensación de huella de carbono"
+  },
+  "adelanto": "Adelanto: abriremos la \"caja negra\" de un crédito de carbono y compartiremos un checklist práctico de due diligence.",
+  "youtube_id": "",
+  "youtube_url": "",
+  "cta_texto": "Antes de compensar, mide. Agenda un diagnóstico gratuito de tu huella de carbono con CarbonBox.",
+  "cta_boton": "Agendar diagnóstico gratuito",
+  "cta_url": "https://calendar.app.google/Ede9nmxveoahb5by8"
+}
