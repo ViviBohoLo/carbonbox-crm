@@ -137,6 +137,34 @@ def revisar_licitaciones(ahora):
     return nuevos
 
 
+def revisar_cotizaciones_listas(ahora):
+    """Oportunidades con borrador de correo listo y sin correo enviado todavía: crea la
+    tarea con el link de la página de confirmación. El link va firmado con el secreto del
+    servidor, por eso no lo puede armar la skill /cotizar desde el PC de Viviana."""
+    nuevos = []
+    sec = secreto()
+    for opp in get_open_opportunities():
+        if not (opp.get("borradorCorreo") or "").strip():
+            continue
+        if ((opp.get("linkCorreoEnviado") or {}).get("primaryLinkUrl") or "").strip():
+            continue                       # ya se envió
+        oid, nombre = opp["id"], opp["name"]
+        title = f"📤 Cotización lista para enviar: {nombre}"
+        if find_open_task_by_title(title):
+            continue
+        link = f"{CRM_URL}/cotizacion?opp={oid}&sig={firmar(oid, sec)}"
+        create_urgent_task(
+            title,
+            f"La cotización de **{nombre}** ya está en Drive y registrada en el CRM.\n\n"
+            f"**Acción:** revísala y envíala desde aquí:\n"
+            f"[Abrir y enviar la cotización]({link})\n\n"
+            "En esa página eliges el remitente, agregas copias (CC) si hacen falta y revisas "
+            "el texto. El correo solo sale al presionar el botón.",
+            oid)
+        nuevos.append(f"  • **{nombre}** — cotización lista para enviar.")
+    return nuevos
+
+
 def _crear_nota(opp_id, titulo, cuerpo_md):
     d = gql("mutation($data: NoteCreateInput!){ createNote(data:$data){ id } }",
             {"data": {"title": titulo, "bodyV2": {"markdown": cuerpo_md}}})
@@ -211,6 +239,7 @@ if __name__ == "__main__":
         nuevos += revisar_sla(ahora)
         nuevos += revisar_agenda(ahora)
         nuevos += revisar_licitaciones(ahora)
+        nuevos += revisar_cotizaciones_listas(ahora)
     if modo in ("todo", "renovacion"):
         nuevos += revisar_renovacion(ahora)
 

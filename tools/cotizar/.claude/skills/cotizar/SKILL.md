@@ -115,10 +115,45 @@ Confirma el **tipo de huella**: **organizacional** (empresa, por sector+empleado
    escrito, mensual = precio÷12, fecha límite = envío+60 días, cronograma acorde al plan).
    Iterar por chat: editar el YAML → re-render.
 
-8. **Write-back al CRM = Etapa 2 (no lo hace este skill todavía).** Cuando se envíe la
-   cotización, mover la oportunidad a "Propuesta enviada" se hace aparte con
-   `Generadores/registrar-cotizacion.js` (ya existe, requiere token local). Integrarlo al
-   flujo del skill es trabajo de Etapa 2.
+8. **Cerrar el ciclo: Drive → CRM → correo.**
+
+   **8.1 Subir el deck a Drive.** Los entregables de clientes viven en la carpeta **`Leads`**
+   (`13dvWmMahnoyl_xsAZohAGVHoA8vIdX5A`), con **una subcarpeta por empresa**.
+   - Busca la subcarpeta comparando **normalizado** (minúsculas, sin tildes ni puntuación):
+     las carpetas no coinciden literal con el CRM ("Fundacion Santa Fe de Bogota" ↔
+     "Fundación Santafé de Bogotá", "Area Andina" ↔ "Área Andina").
+   - **Si hay exactamente una, úsala. Si hay 0 o más de 1, muéstrale las candidatas a Viviana
+     y pregúntale cuál usar. NUNCA crees carpetas nuevas** — ya existe un duplicado
+     ("Hotel Waya" y "Hotel Waya Guajira") y crear más empeora el problema.
+   - Sube **los dos archivos**: el `.pdf` (lo que ve el cliente) y el `.pptx` (el editable,
+     para poder retomarlo después).
+   - Usa el Drive de Composio con la cuenta alias **`carbonbox`** (`info@carbonbox.app`),
+     igual que para leer transcripciones.
+   - **Revisa qué permiso quedó** en el link del PDF y avísale a Viviana si el cliente no va a
+     poder abrirlo. **No cambies permisos de compartición por tu cuenta**: puedes exponer
+     material de otros clientes sin querer.
+
+   **8.2 Redactar el correo** para ese cliente con el contexto de la reunión: saludo por su
+   nombre, qué le estás enviando, el **link del deck**, validez de 60 días y cierre cálido.
+   Guárdalo en `Cotizaciones/<Cliente>/correo.txt` (esa carpeta está fuera de git).
+
+   **8.3 Escribir en el CRM:**
+   ```bash
+   node Generadores/registrar-cotizacion.js --cliente "…" --nit "…" --plan Pro --precio N \
+     --link-cotizacion "<link del PDF>" --borrador-archivo "Cotizaciones/<Cliente>/correo.txt"
+   ```
+   Deja la oportunidad en "Propuesta enviada" con el monto, el plan (`experto` se guarda como
+   `PREMIUM`), el link del deck y el borrador del correo.
+
+   **8.4 Avisarle a Viviana que ya puede enviarla.** El link de la página de envío va **firmado
+   con el secreto del servidor**, así que **no lo construyas ni inventes una firma**. En la
+   siguiente pasada (máximo 3 h) el **Revisor de seguimientos** crea sola la tarea
+   *"📤 Cotización lista para enviar"* con el link correcto, y también aparece en el correo de
+   alertas. Dile a Viviana que la busque ahí.
+
+   En esa página ella elige el remitente (Viviana, Laura, Alejandra o Miguel), agrega copias
+   (CC) para quienes no estén en el CRM, revisa el texto y **solo ahí** se envía. Al enviar, el
+   CRM guarda el link del correo en la oportunidad.
 
 ## Notas
 

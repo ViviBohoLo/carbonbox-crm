@@ -136,6 +136,7 @@ def get_open_opportunities():
                                  "RENOVACION"] } }) {
       edges { node { id name stage fechaEntradaEtapa createdAt updatedAt
         vencimientoContrato etapaLicitacion fechaCierreLicitacion
+        borradorCorreo linkCorreoEnviado { primaryLinkUrl }
         amount { amountMicros } } } } }""")
     return [e["node"] for e in d["opportunities"]["edges"]]
 

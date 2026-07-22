@@ -9,6 +9,7 @@ sys.path.insert(0, "/root/crm-scripts")
 from lead_intake import mapear_form, es_bot, crear_lead, RateLimiter, origen_cors, ficha_persona_html
 from crm_lib import send_notification, google_access_token, now_utc, es_licitacion
 import seguimiento as seg
+import cotizacion as cot
 
 HOST, PORT = "127.0.0.1", 8088
 # Ventana corta por IP con holgura para absorber los reintentos del cliente.
@@ -50,8 +51,74 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         p = urlparse(self.path)
-        if p.path.rstrip("/") != "/seguimiento":
-            return self._html(404, seg.pagina_mensaje("No encontrado", "Página no encontrada."))
+        ruta = p.path.rstrip("/")
+        if ruta == "/seguimiento":
+            return self._get_seguimiento(p)
+        if ruta == "/cotizacion":
+            return self._get_cotizacion(p)
+        return self._html(404, seg.pagina_mensaje("No encontrado", "Página no encontrada."))
+
+    def _get_cotizacion(self, p):
+        q = parse_qs(p.query)
+        opp_id = (q.get("opp") or [""])[0]
+        sig = (q.get("sig") or [""])[0]
+        if not seg.valida(opp_id, sig, seg.secreto()):
+            return self._html(403, seg.pagina_mensaje("Enlace inválido",
+                "Este enlace no es válido.", tono="error"))
+        try:
+            opp = cot.cargar_opp_cotizacion(opp_id)
+        except Exception as ex:
+            print(f"[cotizacion] error cargar: {ex}", flush=True)
+            return self._html(500, seg.pagina_mensaje("Error", "No se pudo cargar el negocio.",
+                                                      tono="error"))
+        if not opp:
+            return self._html(404, seg.pagina_mensaje("No encontrado", "El negocio ya no existe."))
+        nombre, para, empresa, link, borrador = cot.datos_cotizacion(opp)
+        if not para:
+            return self._html(400, seg.pagina_mensaje("Sin contacto",
+                "Este negocio no tiene un contacto con correo en el CRM.", tono="error"))
+        if not link:
+            return self._html(400, seg.pagina_mensaje("Sin deck",
+                "La oportunidad no tiene el link de la cotización. Corre /cotizar primero.",
+                tono="error"))
+        return self._html(200, cot.pagina_cotizacion(
+            opp_id, sig, nombre, para, empresa, cot.asunto_cotizacion(empresa), borrador, link))
+
+    def _cotizacion_enviar(self):
+        n = int(self.headers.get("Content-Length") or 0)
+        form = parse_qs(self.rfile.read(n).decode("utf-8"))
+        g = lambda k: (form.get(k) or [""])[0].strip()
+        opp_id, sig = g("opp"), g("sig")
+        if not seg.valida(opp_id, sig, seg.secreto()):
+            return self._html(403, seg.pagina_mensaje("Enlace inválido", "Enlace no válido.",
+                                                      tono="error"))
+        try:
+            opp = cot.cargar_opp_cotizacion(opp_id)
+            nombre, para, empresa, link, borrador = cot.datos_cotizacion(opp)
+            if not para:
+                return self._html(400, seg.pagina_mensaje("Sin contacto",
+                    "Sin correo del contacto.", tono="error"))
+            asunto = g("asunto") or cot.asunto_cotizacion(empresa)
+            cuerpo = g("cuerpo") or borrador
+            remitente = seg.REMITENTES.get(g("remitente"), seg.REMITENTE)
+            cc = seg.parse_cc(g("cc"))
+            r = seg.enviar_gmail(google_access_token(), para, asunto,
+                                 seg.cuerpo_email_html(cuerpo), texto=cuerpo,
+                                 remitente=remitente, cc=cc)
+            permalink = seg.permalink_gmail(r.get("threadId", ""))
+            cot.registrar_envio_cotizacion(opp_id, permalink)
+            print(f"[cotizacion] enviada a {para} cc={cc} ({opp['name']})", flush=True)
+            copia = f" (con copia a {', '.join(cc)})" if cc else ""
+            return self._html(200, seg.pagina_mensaje("✅ Cotización enviada",
+                f"Se envió a {nombre} ({para}){copia} y quedó registrada en el negocio.",
+                tono="ok"))
+        except Exception as ex:
+            print(f"[cotizacion] error envio: {ex}", flush=True)
+            print(traceback.format_exc(), flush=True)
+            return self._html(500, seg.pagina_mensaje("Error", "No se pudo enviar la cotización.",
+                                                      tono="error"))
+
+    def _get_seguimiento(self, p):
         q = parse_qs(p.query)
         opp_id = (q.get("opp") or [""])[0]
         sig = (q.get("sig") or [""])[0]
@@ -125,6 +192,8 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         if self.path.rstrip("/") == "/seguimiento/enviar":
             return self._seguimiento_enviar()
+        if self.path.rstrip("/") == "/cotizacion/enviar":
+            return self._cotizacion_enviar()
         if self.path.rstrip("/") != "/intake":
             return self._json(404, {"ok": False, "error": "not found"})
         ip = self.headers.get("X-Forwarded-For", self.client_address[0]).split(",")[0].strip()
