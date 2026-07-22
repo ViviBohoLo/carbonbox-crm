@@ -13,6 +13,30 @@ de la reunión de ventas en Drive. Arma un `contenido.yml` y lo renderiza con el
 **Raíz del proyecto:** `tools/cotizar/` dentro del repo carbonbox-crm.
 **Fuente de verdad de textos y reglas:** `Insumos/` (no inventar; campo faltante → `[⚠️ PENDIENTE: ...]`).
 
+## Regla que manda sobre todas las demás: preguntar y que Viviana apruebe
+
+**No infieras nada. Todo se pregunta y se aprueba.** Instrucción explícita de Viviana
+(2026-07-21): *"todos estos pasos de preguntar es lo más importante, todo se pregunta y se
+aprueba"*.
+
+En concreto:
+
+- **Dato de negocio que falta** (sector, empleados, plan, ática, NIT) → **pregúntale**. No lo
+  deduzcas de la transcripción, del nombre de la empresa ni de `Company.sector`. Una
+  deducción razonable igual cambia el precio en silencio y nadie se entera.
+- **Dato que sacaste de una fuente externa** (p. ej. el NIT de un directorio empresarial) →
+  **muéstrale el valor, el link de la fuente y cómo lo verificaste**, y espera su visto bueno
+  antes de escribirlo en el deck o en el CRM.
+- **Antes de cada acción que sale de la máquina** —subir a Drive, escribir en el CRM, mover
+  una etapa, crear una carpeta— **muéstrale qué vas a hacer y espera que apruebe.**
+- **Antes de dar la cotización por lista** → muéstrale las slides renderizadas.
+
+Un `[⚠️ PENDIENTE]` visible siempre es mejor que un valor adivinado que se ve correcto.
+
+> **Antes de ejecutar este flujo, relee este archivo desde el disco.** Si hubo un `git pull`
+> durante la sesión, la copia que cargó el harness al invocar la skill quedó vieja. El
+> 2026-07-21 se corrió el flujo con una copia de horas antes y se omitió el paso 8 completo.
+
 ## Antes de empezar — pregunta obligatoria
 
 Confirma el **tipo de huella**: **organizacional** (empresa, por sector+empleados) o
@@ -42,6 +66,20 @@ Confirma el **tipo de huella**: **organizacional** (empresa, por sector+empleado
    ```
 
    Si el campo `linkTranscripcion` no existe, ver `Generadores/_setup/crear-campo-transcripcion.md`.
+
+   **Si `Company.nit` está vacío** (pasa con los leads de web): a veces el cliente nunca lo
+   mandó, ni siquiera cuando se le pidió en la reunión. Se puede buscar en directorios
+   empresariales, pero **el resultado se le muestra a Viviana para que lo apruebe antes de
+   usarlo** — nunca se escribe directo en el deck ni en el CRM. Al presentárselo, incluye:
+   el valor, el **link de la fuente**, y las verificaciones que hiciste. Sirven tres:
+   *(a)* que **dos fuentes independientes** coincidan, *(b)* que la **dirección y la actividad
+   (CIIU)** coincidan con lo que sabes del cliente, y *(c)* que el **dígito de verificación
+   calcule**. Avísale también si hay empresas con nombres parecidos que descartaste.
+   Caso real: CYC SERVICES → razón social **C & C Services S.A.S.**, NIT `900.008.653-0`,
+   con tres homónimas descartadas por dirección y actividad.
+
+   Cuando el NIT quede aprobado, el paso 8.3 lo guarda solo en `Company.nit`
+   (`registrar-cotizacion.js` lo escribe si está vacío y no lo pisa si ya existe).
 
 2. **Transcripción.** Si falta `linkTranscripcion`, pídelo por chat. Con el link, lee la
    transcripción desde Drive.
@@ -129,6 +167,20 @@ Confirma el **tipo de huella**: **organizacional** (empresa, por sector+empleado
      para poder retomarlo después).
    - Usa el Drive de Composio con la cuenta alias **`carbonbox`** (`info@carbonbox.app`),
      igual que para leer transcripciones.
+
+   > ⚠️ **Subir NO funciona hoy como está escrito** (verificado 2026-07-21).
+   > `GOOGLEDRIVE_UPLOAD_FILE` pide un `s3key` —bytes ya guardados en el almacenamiento de
+   > Composio—, **no una ruta local**: pasarle la ruta del `.pdf` falla con *"file does not
+   > exist in storage"*. Y `GOOGLEDRIVE_UPLOAD_FROM_URL` necesita una URL pública, que el
+   > deck no tiene. Con Drive se puede **leer** pero no **subir desde el disco**.
+   >
+   > Mientras no se arregle: **pídele a Viviana que arrastre el `.pdf` y el `.pptx`** a la
+   > carpeta (dale las rutas completas) y que te pase el link del PDF. No es lo ideal, pero
+   > es honesto: no prometas una subida que no puedes hacer.
+   >
+   > Arreglo de fondo pendiente: el VPS sí tiene credenciales de Google
+   > (`crm_lib.google_access_token()`, las mismas del envío por Gmail). Copiando el deck allá
+   > por `scp`, el servidor podría subirlo a Drive y devolver el link.
    - **Revisa qué permiso quedó** en el link del PDF y avísale a Viviana si el cliente no va a
      poder abrirlo. **No cambies permisos de compartición por tu cuenta**: puedes exponer
      material de otros clientes sin querer.
